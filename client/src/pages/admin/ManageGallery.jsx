@@ -24,7 +24,7 @@ export default function ManageGallery() {
       data.append("description", form.description);
       data.append("category", form.category);
       data.append("image", file);
-      await api.post("/gallery", data, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.post("/gallery", data);
       setForm({ title: "", description: "", category: "other" }); setFile(null); setShowForm(false);
       fetchImages();
     } catch (err) { alert(err.response?.data?.message || "Upload failed"); }
