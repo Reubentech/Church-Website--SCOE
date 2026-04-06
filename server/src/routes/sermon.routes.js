@@ -7,7 +7,7 @@ const upload = require("../middleware/upload.middleware");
 router.get("/", getSermons);
 router.get("/all", protect, adminOnly, getAllSermons);
 router.post("/", protect, adminOnly, upload.single("file"), createSermon);
-router.put("/:id", protect, adminOnly, updateSermon);
+router.put("/:id", protect, adminOnly, upload.single("file"), updateSermon);
 router.delete("/:id", protect, adminOnly, deleteSermon);
 
 module.exports = router;

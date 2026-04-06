@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../../utils/api";
-import { Plus, Trash2, Edit, ArrowLeft, BookOpen } from "lucide-react";
+import { Plus, Trash2, Edit, ArrowLeft, BookOpen, Upload } from "lucide-react";
 
 const empty = { title: "", description: "", speaker: "", date: "", type: "video", videoLink: "", isPremium: false, price: 0 };
 
@@ -19,6 +19,7 @@ export default function ManageSermons() {
 
   const handleChange = e => {
     const val = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    if (e.target.name === "type") setFile(null);
     setForm({ ...form, [e.target.name]: val });
   };
 
@@ -29,7 +30,7 @@ export default function ManageSermons() {
       const data = new FormData();
       Object.entries(form).forEach(([k, v]) => data.append(k, v));
       if (file) data.append("file", file);
-      if (editing) await api.put(`/sermons/${editing}`, form);
+      if (editing) await api.put(`/sermons/${editing}`, data);
       else await api.post("/sermons", data);
       setForm(empty); setEditing(null); setShowForm(false); setFile(null);
       fetchSermons();
@@ -100,13 +101,27 @@ export default function ManageSermons() {
                     className="w-full border-2 border-[#0038B8]/20 focus:border-[#0038B8] rounded-xl px-4 py-3 text-sm outline-none text-[#001F6B]" />
                 </div>
               )}
-              {(form.type === "audio" || form.type === "pdf") && !editing && (
-                <div className="md:col-span-2">
-                  <label className="text-[#001F6B] text-sm font-bold mb-2 block">Upload File</label>
-                  <input type="file" onChange={e => setFile(e.target.files[0])} accept=".pdf,.mp3,.wav"
-                    className="w-full border-2 border-[#0038B8]/20 rounded-xl px-4 py-3 text-sm text-[#001F6B]" />
-                </div>
-              )}
+              <div className="md:col-span-2">
+                <label className="text-[#001F6B] text-sm font-bold mb-2 block">
+                  {form.type === "video" ? "Or Upload Video File" : "Upload File"}
+                  {editing && <span className="text-[#001F6B]/40 font-normal ml-2">(leave empty to keep existing)</span>}
+                </label>
+                <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-[#0038B8]/30 hover:border-[#0038B8] rounded-xl px-4 py-6 cursor-pointer transition-colors group">
+                  <Upload size={24} className="text-[#0038B8]/40 group-hover:text-[#0038B8] mb-2 transition-colors" />
+                  <span className="text-sm text-[#001F6B]/60 group-hover:text-[#001F6B] transition-colors">
+                    {file ? file.name : "Click to choose a file from your device"}
+                  </span>
+                  <span className="text-xs text-[#001F6B]/30 mt-1">
+                    {form.type === "video" ? "MP4" : form.type === "audio" ? "MP3, WAV" : "PDF"} supported
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={e => setFile(e.target.files[0])}
+                    accept={form.type === "video" ? ".mp4" : form.type === "audio" ? ".mp3,.wav" : ".pdf"}
+                  />
+                </label>
+              </div>
               <div className="flex items-center gap-3">
                 <input type="checkbox" name="isPremium" checked={form.isPremium} onChange={handleChange} id="premium" className="w-4 h-4" />
                 <label htmlFor="premium" className="text-[#001F6B] text-sm font-bold">Premium Content</label>

@@ -29,6 +29,7 @@ exports.updateSermon = async (req, res) => {
     if (data.date) data.date = new Date(data.date);
     if (data.isPremium !== undefined) data.isPremium = data.isPremium === "true" || data.isPremium === true;
     if (data.price !== undefined) data.price = parseFloat(data.price) || 0;
+    if (req.file) data.fileUrl = `/uploads/${req.file.filename}`;
     delete data.createdBy;
     const sermon = await prisma.sermon.update({ where: { id: req.params.id }, data });
     res.json({ success: true, data: sermon });
