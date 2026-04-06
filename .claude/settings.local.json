@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma:*)",
+      "Bash(cmd /c \"rename node_modules\\\\.prisma\\\\client\\\\query_engine-windows.dll.node query_engine-windows.dll.node.bak\")",
+      "Bash(cmd /c \"rmdir /S /Q node_modules\\\\.prisma\")",
+      "Bash(node -e \"const p = require\\('@prisma/client'\\); console.log\\('Prisma client loaded OK'\\); console.log\\(Object.keys\\(new p.PrismaClient\\(\\)\\).filter\\(k => !k.startsWith\\('_'\\)\\).slice\\(0, 5\\)\\)\")"
+    ]
+  }
+}
