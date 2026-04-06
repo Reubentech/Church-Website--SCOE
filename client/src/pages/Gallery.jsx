@@ -43,7 +43,7 @@ export default function Gallery() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {images.map((img, i) => (
-              <motion.div key={img._id} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+              <motion.div key={img.id} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
                 whileHover={{ scale: 1.03 }} onClick={() => setSelected(i)}
                 className="aspect-square rounded-2xl overflow-hidden cursor-pointer shadow-md border border-[#0038B8]/10">
                 <img src={`${SERVER_URL}${img.imageUrl}`} alt={img.title} className="w-full h-full object-cover" />

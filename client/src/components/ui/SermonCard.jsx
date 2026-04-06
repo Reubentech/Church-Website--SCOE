@@ -19,7 +19,7 @@ function MpesaModal({ sermon, onClose }) {
     setLoading(true);
     setError("");
     try {
-      const res = await api.post("/mpesa/stk-push", { phone, sermonId: sermon._id });
+      const res = await api.post("/mpesa/stk-push", { phone, sermonId: sermon.id });
       setCheckoutId(res.data.checkoutRequestId);
       setStep("waiting");
       pollPaymentStatus(res.data.checkoutRequestId);
@@ -43,7 +43,11 @@ function MpesaModal({ sermon, onClose }) {
           clearInterval(interval);
           setStep("failed");
         }
-      } catch (err) {}
+      } catch (err) {
+        clearInterval(interval);
+        setError("Could not verify payment status. Please contact support.");
+        setStep("failed");
+      }
       if (attempts >= 20) {
         clearInterval(interval);
         setStep("failed");

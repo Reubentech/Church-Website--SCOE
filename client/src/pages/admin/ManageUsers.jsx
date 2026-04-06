@@ -17,7 +17,7 @@ function UserModal({ user, onClose, onSave }) {
     setLoading(true);
     setError("");
     try {
-      if (user) await api.put(`/users/${user._id}`, form);
+      if (user) await api.put(`/users/${user.id}`, form);
       else {
         if (!form.password) { setError("Password is required"); setLoading(false); return; }
         await api.post("/users", form);
@@ -123,7 +123,7 @@ export default function ManageUsers() {
   };
 
   const toggleSelect = id => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
-  const toggleAll = () => setSelected(s => s.length === users.length ? [] : users.map(u => u._id));
+  const toggleAll = () => setSelected(s => s.length === users.length ? [] : users.map(u => u.id));
 
   const exportCSV = () => {
     const csv = ["Name,Email,Role,Joined", ...users.map(u => `${u.name},${u.email},${u.role},${new Date(u.createdAt).toLocaleDateString()}`)].join("\n");
@@ -187,10 +187,10 @@ export default function ManageUsers() {
                 </thead>
                 <tbody>
                   {users.map(user => (
-                    <motion.tr key={user._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      className={`border-b border-[#0038B8]/5 hover:bg-[#F0F5FF] transition-colors ${selected.includes(user._id) ? "bg-blue-50" : ""}`}>
+                    <motion.tr key={user.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      className={`border-b border-[#0038B8]/5 hover:bg-[#F0F5FF] transition-colors ${selected.includes(user.id) ? "bg-blue-50" : ""}`}>
                       <td className="p-4">
-                        <input type="checkbox" checked={selected.includes(user._id)} onChange={() => toggleSelect(user._id)} className="w-4 h-4 cursor-pointer" />
+                        <input type="checkbox" checked={selected.includes(user.id)} onChange={() => toggleSelect(user.id)} className="w-4 h-4 cursor-pointer" />
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
@@ -204,7 +204,7 @@ export default function ManageUsers() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <select value={user.role} onChange={e => handleRoleChange(user._id, e.target.value)}
+                        <select value={user.role} onChange={e => handleRoleChange(user.id, e.target.value)}
                           className={`text-xs font-bold px-3 py-1.5 rounded-full border-2 outline-none cursor-pointer ${user.role === "admin" ? "bg-[#0038B8]/10 text-[#0038B8] border-[#0038B8]/30" : "bg-gray-100 text-gray-600 border-gray-200"}`}>
                           <option value="user">User</option>
                           <option value="admin">Admin</option>
@@ -217,7 +217,7 @@ export default function ManageUsers() {
                             className="p-2 text-[#0038B8] hover:bg-[#0038B8]/10 rounded-xl transition-colors">
                             <Edit size={16} />
                           </button>
-                          <button onClick={() => handleDelete(user._id)}
+                          <button onClick={() => handleDelete(user.id)}
                             className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors">
                             <Trash2 size={16} />
                           </button>

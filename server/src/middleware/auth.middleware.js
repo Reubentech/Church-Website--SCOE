@@ -1,5 +1,5 @@
-﻿const jwt = require("jsonwebtoken");
-const User = require("../models/User.model");
+const jwt = require("jsonwebtoken");
+const prisma = require("../lib/prisma");
 
 exports.protect = async (req, res, next) => {
   try {
@@ -9,8 +9,9 @@ exports.protect = async (req, res, next) => {
     }
     if (!token) return res.status(401).json({ success: false, message: "Not authorized" });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select("-password");
-    if (!req.user) return res.status(401).json({ success: false, message: "User not found" });
+    const user = await prisma.user.findUnique({ where: { id: decoded.id }, select: { id: true, name: true, email: true, role: true } });
+    if (!user) return res.status(401).json({ success: false, message: "User not found" });
+    req.user = user;
     next();
   } catch (error) {
     return res.status(401).json({ success: false, message: "Token invalid or expired" });

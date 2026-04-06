@@ -1,6 +1,5 @@
-﻿const axios = require("axios");
-const Payment = require("../models/Payment.model");
-const Sermon = require("../models/Sermon.model");
+const axios = require("axios");
+const prisma = require("../lib/prisma");
 const { getAccessToken, getTimestamp, getPassword } = require("../utils/mpesa.utils");
 
 exports.initiateSTKPush = async (req, res) => {
@@ -8,7 +7,7 @@ exports.initiateSTKPush = async (req, res) => {
     const { phone, sermonId } = req.body;
     if (!phone || !sermonId) return res.status(400).json({ success: false, message: "Phone and sermon ID required" });
 
-    const sermon = await Sermon.findById(sermonId);
+    const sermon = await prisma.sermon.findUnique({ where: { id: sermonId } });
     if (!sermon) return res.status(404).json({ success: false, message: "Sermon not found" });
     if (!sermon.isPremium) return res.status(400).json({ success: false, message: "Sermon is not premium" });
 
@@ -34,7 +33,7 @@ exports.initiateSTKPush = async (req, res) => {
       PartyB: process.env.MPESA_SHORTCODE,
       PhoneNumber: formattedPhone,
       CallBackURL: process.env.MPESA_CALLBACK_URL,
-      AccountReference: `SCE-${sermon._id.toString().slice(-6).toUpperCase()}`,
+      AccountReference: `SCE-${sermonId.slice(-6).toUpperCase()}`,
       TransactionDesc: `Payment for ${sermon.title}`,
     };
 
@@ -42,22 +41,17 @@ exports.initiateSTKPush = async (req, res) => {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const payment = await Payment.create({
-      userId: req.user?._id || null,
+    const payment = await prisma.payment.create({ data: {
+      userId: req.user?.id || null,
       sermonId,
       phone: formattedPhone,
       amount,
       checkoutRequestId: response.data.CheckoutRequestID,
       merchantRequestId: response.data.MerchantRequestID,
-      status: "pending"
-    });
+      status: "pending",
+    }});
 
-    res.json({
-      success: true,
-      message: "STK Push sent! Check your phone and enter your M-Pesa PIN.",
-      checkoutRequestId: response.data.CheckoutRequestID,
-      paymentId: payment._id
-    });
+    res.json({ success: true, message: "STK Push sent! Check your phone and enter your M-Pesa PIN.", checkoutRequestId: response.data.CheckoutRequestID, paymentId: payment.id });
   } catch (err) {
     console.error("STK Push Error:", err.response?.data || err.message);
     res.status(500).json({ success: false, message: "Payment initiation failed. Please try again." });
@@ -69,7 +63,7 @@ exports.mpesaCallback = async (req, res) => {
     const { Body } = req.body;
     const { stkCallback } = Body;
     const { ResultCode, ResultDesc, CheckoutRequestID, CallbackMetadata } = stkCallback;
-    const payment = await Payment.findOne({ checkoutRequestId: CheckoutRequestID });
+    const payment = await prisma.payment.findFirst({ where: { checkoutRequestId: CheckoutRequestID } });
     if (!payment) return res.json({ ResultCode: 0, ResultDesc: "Accepted" });
     if (ResultCode === 0) {
       let receiptNumber = "";
@@ -77,9 +71,9 @@ exports.mpesaCallback = async (req, res) => {
         const receiptItem = CallbackMetadata.Item.find(i => i.Name === "MpesaReceiptNumber");
         if (receiptItem) receiptNumber = receiptItem.Value;
       }
-      await Payment.findByIdAndUpdate(payment._id, { status: "completed", mpesaReceiptNumber: receiptNumber, resultDesc: ResultDesc });
+      await prisma.payment.update({ where: { id: payment.id }, data: { status: "completed", mpesaReceiptNumber: receiptNumber, resultDesc: ResultDesc } });
     } else {
-      await Payment.findByIdAndUpdate(payment._id, { status: "failed", resultDesc: ResultDesc });
+      await prisma.payment.update({ where: { id: payment.id }, data: { status: "failed", resultDesc: ResultDesc } });
     }
     res.json({ ResultCode: 0, ResultDesc: "Accepted" });
   } catch (err) {
@@ -91,7 +85,7 @@ exports.mpesaCallback = async (req, res) => {
 exports.checkPaymentStatus = async (req, res) => {
   try {
     const { checkoutRequestId } = req.params;
-    const payment = await Payment.findOne({ checkoutRequestId });
+    const payment = await prisma.payment.findFirst({ where: { checkoutRequestId } });
     if (!payment) return res.status(404).json({ success: false, message: "Payment not found" });
     res.json({ success: true, status: payment.status, receipt: payment.mpesaReceiptNumber });
   } catch (err) {
@@ -101,7 +95,7 @@ exports.checkPaymentStatus = async (req, res) => {
 
 exports.getPayments = async (req, res) => {
   try {
-    const payments = await Payment.find().populate("sermonId", "title price").sort({ createdAt: -1 });
+    const payments = await prisma.payment.findMany({ include: { sermon: { select: { title: true, price: true } } }, orderBy: { createdAt: "desc" } });
     res.json({ success: true, data: payments });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

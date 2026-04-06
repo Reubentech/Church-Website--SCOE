@@ -11,12 +11,12 @@ const userSchema = new mongoose.Schema({
 userSchema.pre("save", function(next) {
   const user = this;
   if (!user.isModified("password")) return next();
-  bcrypt.genSalt(12, function(err, salt) {
-    if (err) return next(err);
-    bcrypt.hash(user.password, salt, function(err, hash) {
-      if (err) return next(err);
+  bcrypt.genSalt(12, function(saltErr, salt) {
+    if (saltErr) return next(saltErr);
+    bcrypt.hash(user.password, salt, function(hashErr, hash) {
+      if (hashErr) return next(hashErr);
       user.password = hash;
-      return next();
+      next();
     });
   });
 });

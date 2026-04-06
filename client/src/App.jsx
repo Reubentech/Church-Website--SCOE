@@ -25,11 +25,13 @@ import ManagePrayers from "./pages/admin/ManagePrayers";
 import ManageBibleStudy from "./pages/admin/ManageBibleStudy";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
 import ManageNewsletter from "./pages/admin/ManageNewsletter";
-import ManageBlog from "./pages/admin/ManageBlog";
 import ManageUsers from "./pages/admin/ManageUsers";
 import SiteSettings from "./pages/admin/SiteSettings";
 import ActivityLogs from "./pages/admin/ActivityLogs";
 import Analytics from "./pages/admin/Analytics";
+import ManageBlog from "./pages/admin/ManageBlog";
+import ManageBulletin from "./pages/admin/ManageBulletin";
+import ManageRSVP from "./pages/admin/ManageRSVP";
 
 const AdminRoute = ({ children }) => {
   const { user, loading, isAdmin } = useAuth();
@@ -68,11 +70,13 @@ function AppRoutes() {
           <Route path="/admin/bible-study" element={<AdminRoute><ManageBibleStudy /></AdminRoute>} />
           <Route path="/admin/announcements" element={<AdminRoute><ManageAnnouncements /></AdminRoute>} />
           <Route path="/admin/newsletter" element={<AdminRoute><ManageNewsletter /></AdminRoute>} />
-          <Route path="/admin/blog" element={<AdminRoute><ManageBlog /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><ManageUsers /></AdminRoute>} />
           <Route path="/admin/settings" element={<AdminRoute><SiteSettings /></AdminRoute>} />
           <Route path="/admin/logs" element={<AdminRoute><ActivityLogs /></AdminRoute>} />
           <Route path="/admin/analytics" element={<AdminRoute><Analytics /></AdminRoute>} />
+          <Route path="/admin/blog" element={<AdminRoute><ManageBlog /></AdminRoute>} />
+          <Route path="/admin/bulletin" element={<AdminRoute><ManageBulletin /></AdminRoute>} />
+          <Route path="/admin/rsvp" element={<AdminRoute><ManageRSVP /></AdminRoute>} />
         </Routes>
       </main>
       <Footer />

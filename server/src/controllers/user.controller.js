@@ -1,10 +1,17 @@
-﻿const User = require("../models/User.model");
+const bcrypt = require("bcryptjs");
+const prisma = require("../lib/prisma");
 
 exports.getUsers = async (req, res) => {
   try {
     const { search = "" } = req.query;
-    const query = search ? { $or: [{ name: { $regex: search, $options: "i" } }, { email: { $regex: search, $options: "i" } }] } : {};
-    const users = await User.find(query).select("-password").sort({ createdAt: -1 });
+    const users = await prisma.user.findMany({
+      where: search ? { OR: [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } }
+      ]} : {},
+      select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
+      orderBy: { createdAt: "desc" },
+    });
     res.json({ success: true, data: users });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
@@ -12,29 +19,24 @@ exports.getUsers = async (req, res) => {
 exports.createUser = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    const exists = await User.findOne({ email });
+    if (!name || !email || !password) return res.status(400).json({ success: false, message: "All fields are required" });
+    const exists = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (exists) return res.status(400).json({ success: false, message: "Email already registered" });
-    const user = await User.create({ name, email, password, role: role || "user" });
-    res.status(201).json({ success: true, data: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    const hashed = await bcrypt.hash(password, 12);
+    const user = await prisma.user.create({ data: { name, email: email.toLowerCase(), password: hashed, role: role || "user" } });
+    res.status(201).json({ success: true, data: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
 exports.updateUser = async (req, res) => {
   try {
     const { name, email, role, password } = req.body;
-    const updateData = { name, email, role };
-    if (password && password.trim() !== "") {
-      const user = await User.findById(req.params.id);
-      if (!user) return res.status(404).json({ success: false, message: "User not found" });
-      user.name = name;
-      user.email = email;
-      user.role = role;
-      user.password = password;
-      await user.save();
-      return res.json({ success: true, data: { id: user._id, name: user.name, email: user.email, role: user.role } });
-    }
-    const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true }).select("-password");
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    const data = {};
+    if (name) data.name = name;
+    if (email) data.email = email.toLowerCase();
+    if (role) data.role = role;
+    if (password && password.trim()) data.password = await bcrypt.hash(password, 12);
+    const user = await prisma.user.update({ where: { id: req.params.id }, data, select: { id: true, name: true, email: true, role: true } });
     res.json({ success: true, data: user });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
@@ -43,16 +45,15 @@ exports.updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;
     if (!["user", "admin"].includes(role)) return res.status(400).json({ success: false, message: "Invalid role" });
-    if (req.params.id === req.user._id.toString()) return res.status(400).json({ success: false, message: "Cannot change your own role" });
-    const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select("-password");
+    const user = await prisma.user.update({ where: { id: req.params.id }, data: { role }, select: { id: true, name: true, email: true, role: true } });
     res.json({ success: true, data: user });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
 exports.deleteUser = async (req, res) => {
   try {
-    if (req.params.id === req.user._id.toString()) return res.status(400).json({ success: false, message: "Cannot delete yourself" });
-    await User.findByIdAndDelete(req.params.id);
+    if (req.params.id === req.user.id) return res.status(400).json({ success: false, message: "Cannot delete yourself" });
+    await prisma.user.delete({ where: { id: req.params.id } });
     res.json({ success: true, message: "User deleted" });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
@@ -60,7 +61,9 @@ exports.deleteUser = async (req, res) => {
 exports.bulkDeleteUsers = async (req, res) => {
   try {
     const { ids } = req.body;
-    await User.deleteMany({ _id: { $in: ids } });
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ success: false, message: "No user IDs provided" });
+    if (ids.includes(req.user.id)) return res.status(400).json({ success: false, message: "Cannot delete yourself" });
+    await prisma.user.deleteMany({ where: { id: { in: ids } } });
     res.json({ success: true, message: `${ids.length} users deleted` });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };

@@ -78,7 +78,7 @@ export default function Sermons() {
           <>
             <p className="text-[#001F6B]/50 text-sm mb-6">{filtered.length} sermon{filtered.length !== 1 ? "s" : ""} found</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filtered.map(sermon => <SermonCard key={sermon._id} sermon={sermon} />)}
+              {filtered.map(sermon => <SermonCard key={sermon.id} sermon={sermon} />)}
             </div>
           </>
         )}

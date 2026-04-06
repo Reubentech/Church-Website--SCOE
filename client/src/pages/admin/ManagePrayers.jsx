@@ -30,7 +30,7 @@ export default function ManagePrayers() {
         ) : (
           <div className="flex flex-col gap-4">
             {prayers.map(p => (
-              <motion.div key={p._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              <motion.div key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 className={`bg-white rounded-2xl p-6 shadow-sm border ${p.isAnswered ? "border-green-200" : "border-[#0038B8]/10"}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -44,11 +44,11 @@ export default function ManagePrayers() {
                   </div>
                   <div className="flex gap-2 ml-4">
                     {!p.isAnswered && (
-                      <button onClick={() => markAnswered(p._id)} className="p-2 text-green-500 hover:bg-green-50 rounded-xl transition-colors" title="Mark Answered">
+                      <button onClick={() => markAnswered(p.id)} className="p-2 text-green-500 hover:bg-green-50 rounded-xl transition-colors" title="Mark Answered">
                         <CheckCircle size={18} />
                       </button>
                     )}
-                    <button onClick={() => handleDelete(p._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={18} /></button>
+                    <button onClick={() => handleDelete(p.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={18} /></button>
                   </div>
                 </div>
               </motion.div>

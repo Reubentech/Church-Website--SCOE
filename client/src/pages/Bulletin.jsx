@@ -142,7 +142,7 @@ export default function Bulletin() {
               All Bulletins
             </h2>
             <div className="flex flex-col gap-4">
-              {bulletins.map(bulletin => <BulletinCard key={bulletin._id} bulletin={bulletin} />)}
+              {bulletins.map(bulletin => <BulletinCard key={bulletin.id} bulletin={bulletin} />)}
             </div>
           </>
         )}

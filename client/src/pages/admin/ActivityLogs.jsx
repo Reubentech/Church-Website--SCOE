@@ -57,7 +57,7 @@ export default function ActivityLogs() {
             <div className="h-1 bg-[#0038B8]" />
             <div className="divide-y divide-[#0038B8]/5">
               {logs.map((log, i) => (
-                <motion.div key={log._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+                <motion.div key={log.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
                   className="px-6 py-4 flex items-start gap-4 hover:bg-[#F0F5FF] transition-colors">
                   <div className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 mt-0.5 ${actionColors[log.action] || "bg-gray-100 text-gray-600"}`}>
                     {log.action}

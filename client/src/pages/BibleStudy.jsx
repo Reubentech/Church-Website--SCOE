@@ -65,7 +65,7 @@ export default function BibleStudy() {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {studies.map(study => <StudyCard key={study._id} study={study} />)}
+            {studies.map(study => <StudyCard key={study.id} study={study} />)}
           </div>
         )}
       </div>

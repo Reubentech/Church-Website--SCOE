@@ -36,7 +36,7 @@ export default function ManageNewsletter() {
             <div className="h-1 bg-[#0038B8]" />
             <div className="divide-y divide-[#0038B8]/10">
               {subscribers.map((s, i) => (
-                <motion.div key={s._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
+                <motion.div key={s.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
                   className="flex items-center justify-between px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-[#0038B8] rounded-full flex items-center justify-center">
@@ -49,7 +49,7 @@ export default function ManageNewsletter() {
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="text-[#001F6B]/30 text-xs">{new Date(s.createdAt).toLocaleDateString()}</p>
-                    <button onClick={() => unsubscribe(s._id)} className="text-xs text-red-500 hover:bg-red-50 px-3 py-1 rounded-full transition-colors font-semibold">
+                    <button onClick={() => unsubscribe(s.id)} className="text-xs text-red-500 hover:bg-red-50 px-3 py-1 rounded-full transition-colors font-semibold">
                       Remove
                     </button>
                   </div>

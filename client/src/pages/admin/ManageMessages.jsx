@@ -15,7 +15,7 @@ export default function ManageMessages() {
   const markRead = async id => {
     await api.put(`/contact/${id}/read`);
     fetchMessages();
-    if (selected?._id === id) setSelected({ ...selected, isRead: true });
+    if (selected?.id === id) setSelected({ ...selected, isRead: true });
   };
 
   return (
@@ -39,9 +39,9 @@ export default function ManageMessages() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="flex flex-col gap-3">
               {messages.map(msg => (
-                <motion.div key={msg._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  onClick={() => { setSelected(msg); if (!msg.isRead) markRead(msg._id); }}
-                  className={`bg-white rounded-2xl p-5 shadow-sm border cursor-pointer transition-all hover:shadow-md ${selected?._id === msg._id ? "border-[#0038B8]" : "border-[#0038B8]/10"} ${!msg.isRead ? "border-l-4 border-l-[#0038B8]" : ""}`}>
+                <motion.div key={msg.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  onClick={() => { setSelected(msg); if (!msg.isRead) markRead(msg.id); }}
+                  className={`bg-white rounded-2xl p-5 shadow-sm border cursor-pointer transition-all hover:shadow-md ${selected?.id === msg.id ? "border-[#0038B8]" : "border-[#0038B8]/10"} ${!msg.isRead ? "border-l-4 border-l-[#0038B8]" : ""}`}>
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 bg-[#0038B8] rounded-full flex items-center justify-center">

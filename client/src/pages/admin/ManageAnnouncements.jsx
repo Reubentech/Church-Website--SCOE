@@ -26,7 +26,7 @@ export default function ManageAnnouncements() {
     finally { setLoading(false); }
   };
 
-  const handleEdit = a => { setForm({ message: a.message, type: a.type, isActive: a.isActive, link: a.link || "", linkText: a.linkText || "" }); setEditing(a._id); setShowForm(true); };
+  const handleEdit = a => { setForm({ message: a.message, type: a.type, isActive: a.isActive, link: a.link || "", linkText: a.linkText || "" }); setEditing(a.id); setShowForm(true); };
   const handleDelete = async id => { if (!confirm("Delete?")) return; await api.delete(`/announcements/${id}`); fetchAll(); };
   const toggleActive = async (id, isActive) => { await api.put(`/announcements/${id}`, { isActive: !isActive }); fetchAll(); };
 
@@ -91,7 +91,7 @@ export default function ManageAnnouncements() {
         ) : (
           <div className="flex flex-col gap-4">
             {announcements.map(a => (
-              <div key={a._id} className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
+              <div key={a.id} className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-xs font-bold px-2 py-1 rounded-full capitalize ${typeColors[a.type]}`}>{a.type}</span>
@@ -102,11 +102,11 @@ export default function ManageAnnouncements() {
                   <p className="text-[#001F6B] font-semibold text-sm">{a.message}</p>
                 </div>
                 <div className="flex gap-2 ml-4">
-                  <button onClick={() => toggleActive(a._id, a.isActive)} className={`p-2 rounded-xl transition-colors text-xs font-bold px-3 ${a.isActive ? "bg-gray-100 text-gray-600 hover:bg-gray-200" : "bg-green-100 text-green-600 hover:bg-green-200"}`}>
+                  <button onClick={() => toggleActive(a.id, a.isActive)} className={`p-2 rounded-xl transition-colors text-xs font-bold px-3 ${a.isActive ? "bg-gray-100 text-gray-600 hover:bg-gray-200" : "bg-green-100 text-green-600 hover:bg-green-200"}`}>
                     {a.isActive ? "Deactivate" : "Activate"}
                   </button>
                   <button onClick={() => handleEdit(a)} className="p-2 text-[#0038B8] hover:bg-[#0038B8]/10 rounded-xl"><Edit size={18} /></button>
-                  <button onClick={() => handleDelete(a._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
+                  <button onClick={() => handleDelete(a.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
                 </div>
               </div>
             ))}

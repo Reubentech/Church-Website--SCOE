@@ -1,5 +1,4 @@
-﻿const express = require("express");
-const mongoose = require("mongoose");
+const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const rateLimit = require("express-rate-limit");
@@ -7,15 +6,12 @@ require("dotenv").config();
 
 const app = express();
 
-const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(",").map(o => o.trim())
-  : ["http://localhost:5173", "http://localhost:3000"];
-
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error("Not allowed by CORS"));
-  },
+  origin: process.env.NODE_ENV === "development"
+    ? true
+    : (process.env.CLIENT_URL
+        ? process.env.CLIENT_URL.split(",").map(o => o.trim())
+        : ["http://localhost:5173"]),
   credentials: true,
 }));
 app.use(express.json());
@@ -54,22 +50,16 @@ app.use("/api/logs", require("./src/routes/activitylog.routes"));
 app.use("/api/users", require("./src/routes/user.routes"));
 app.use("/api/import", require("./src/routes/autoimport.routes"));
 app.use("/api/blog", require("./src/routes/blogpost.routes"));
+app.use("/api/rsvp", require("./src/routes/rsvp.routes"));
 app.use("/api/bulletin", require("./src/routes/bulletin.routes"));
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Sabbathtarian Church API is running" });
 });
 
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log("MongoDB Connected");
-    const { startScheduler } = require("./src/utils/scheduler");
-    startScheduler();
-    app.listen(process.env.PORT || 5000, () => {
-      console.log("Server running on port 5000");
-    });
-  })
-  .catch((err) => {
-    console.error("MongoDB error:", err.message);
-    process.exit(1);
-  });
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
+  const { startScheduler } = require("./src/utils/scheduler");
+  startScheduler();
+});

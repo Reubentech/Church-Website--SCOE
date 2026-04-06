@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { BookOpen, Search, Eye, Calendar, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { BookOpen, Search, Eye } from "lucide-react";
 import { format } from "date-fns";
 import api from "../utils/api";
 
@@ -18,7 +18,7 @@ export default function Blog() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [selected, setSelected] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     api.get(`/blog?category=${category}&search=${search}`)
@@ -28,34 +28,6 @@ export default function Blog() {
   }, [category, search]);
 
   const categories = ["all", "news", "testimony", "devotional", "announcement", "teaching"];
-
-  if (selected) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="bg-[#0038B8] pt-32 pb-16 px-6">
-          <div className="max-w-4xl mx-auto">
-            <button onClick={() => setSelected(null)} className="text-white/60 hover:text-white text-sm mb-4 flex items-center gap-1">← Back to Blog</button>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full capitalize mb-4 inline-block ${categoryColors[selected.category]?.bg} ${categoryColors[selected.category]?.text}`}>
-              {selected.category}
-            </span>
-            <h1 className="text-white text-4xl font-bold mt-2">{selected.title}</h1>
-          </div>
-        </div>
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          <div className="flex items-center gap-6 mb-8 pb-6 border-b border-gray-100">
-            <div className="flex items-center gap-2 text-[#001F6B]/50 text-sm"><User size={14} className="text-[#0038B8]" />{selected.author}</div>
-            <div className="flex items-center gap-2 text-[#001F6B]/50 text-sm"><Calendar size={14} className="text-[#0038B8]" />{format(new Date(selected.createdAt), "MMMM d, yyyy")}</div>
-            <div className="flex items-center gap-2 text-[#001F6B]/50 text-sm"><Eye size={14} className="text-[#0038B8]" />{selected.views} views</div>
-          </div>
-          <div className="prose max-w-none">
-            {selected.content.split("\n\n").map((para, i) => (
-              <p key={i} className="text-[#001F6B]/80 leading-relaxed mb-6 text-lg">{para}</p>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FF]">
@@ -102,11 +74,11 @@ export default function Blog() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {posts.map((post, i) => (
-              <motion.div key={post._id}
+              <motion.div key={post.id}
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
                 whileHover={{ y: -5 }}
                 className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
-                onClick={() => setSelected(post)}>
+                onClick={() => navigate(`/blog/${post.slug}`)}>
                 <div className="h-1.5" style={{ background: post.category === "teaching" ? "#dc2626" : post.category === "testimony" ? "#16a34a" : post.category === "devotional" ? "#7c3aed" : post.category === "announcement" ? "#f97316" : "#0038B8" }} />
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">

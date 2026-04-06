@@ -38,7 +38,7 @@ export default function ManageBulletin() {
 
   const handleEdit = b => {
     setForm({ title: b.title, date: b.date?.slice(0,10), scripture: b.scripture, scriptureText: b.scriptureText, welcomeMessage: b.welcomeMessage, serviceOrder: b.serviceOrder?.length ? b.serviceOrder : [{ time: "", activity: "" }], announcements: b.announcements?.length ? b.announcements : [{ title: "", content: "" }], prayerRequests: b.prayerRequests?.length ? b.prayerRequests : [""], offerings: b.offerings || "", closingThought: b.closingThought || "", isPublished: b.isPublished });
-    setEditing(b._id); setShowForm(true);
+    setEditing(b.id); setShowForm(true);
   };
 
   const handleDelete = async id => {
@@ -195,14 +195,14 @@ export default function ManageBulletin() {
         ) : (
           <div className="flex flex-col gap-4">
             {bulletins.map(b => (
-              <div key={b._id} className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
+              <div key={b.id} className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
                 <div>
                   <h3 className="text-[#001F6B] font-bold">{b.title}</h3>
                   <p className="text-[#001F6B]/50 text-sm">{format(new Date(b.date), "EEEE, MMMM d, yyyy")} · {b.scripture}</p>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleEdit(b)} className="p-2 text-[#0038B8] hover:bg-[#0038B8]/10 rounded-xl"><Edit size={18} /></button>
-                  <button onClick={() => handleDelete(b._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
+                  <button onClick={() => handleDelete(b.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
                 </div>
               </div>
             ))}

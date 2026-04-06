@@ -40,7 +40,7 @@ export default function ManageSermons() {
 
   const handleEdit = s => {
     setForm({ title: s.title, description: s.description, speaker: s.speaker, date: s.date?.slice(0, 10), type: s.type, videoLink: s.videoLink || "", isPremium: s.isPremium, price: s.price });
-    setEditing(s._id); setShowForm(true);
+    setEditing(s.id); setShowForm(true);
   };
 
   const handleDelete = async id => {
@@ -141,7 +141,7 @@ export default function ManageSermons() {
         ) : (
           <div className="flex flex-col gap-4">
             {sermons.map(s => (
-              <div key={s._id} className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
+              <div key={s.id} className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold text-[#0038B8] bg-[#0038B8]/10 px-2 py-1 rounded-full uppercase mr-2">{s.type}</span>
                   {s.isPremium && <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full">Premium</span>}
@@ -150,7 +150,7 @@ export default function ManageSermons() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleEdit(s)} className="p-2 text-[#0038B8] hover:bg-[#0038B8]/10 rounded-xl"><Edit size={18} /></button>
-                  <button onClick={() => handleDelete(s._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
+                  <button onClick={() => handleDelete(s.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
                 </div>
               </div>
             ))}

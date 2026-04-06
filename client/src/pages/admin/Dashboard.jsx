@@ -1,9 +1,9 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../../utils/api";
 import { useAuth } from "../../context/AuthContext";
-import { Calendar, BookOpen, Image, MessageSquare, Users, LogOut, Heart, Bell, Mail, Book, Settings, Activity, BarChart2, FileText, Newspaper } from "lucide-react";
+import { Calendar, BookOpen, Image, MessageSquare, Users, LogOut, Heart, Bell, Mail, Book, Settings, Activity, BarChart2, FileText, Newspaper, ClipboardList } from "lucide-react";
 
 function StarOfDavid() {
   const cx = 20, cy = 20, r = 14;
@@ -34,6 +34,7 @@ export default function Dashboard() {
       title: "Content Management",
       links: [
         { label: "Events", icon: Calendar, path: "/admin/events", desc: "Create & edit events" },
+        { label: "RSVPs", icon: ClipboardList, path: "/admin/rsvp", desc: "View event registrations" },
         { label: "Sermons", icon: BookOpen, path: "/admin/sermons", desc: "Upload sermons" },
         { label: "Gallery", icon: Image, path: "/admin/gallery", desc: "Upload photos" },
         { label: "Bible Study", icon: Book, path: "/admin/bible-study", desc: "Post weekly notes" },
@@ -119,3 +120,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+

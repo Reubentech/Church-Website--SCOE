@@ -32,7 +32,7 @@ export default function ManageEvents() {
 
   const handleEdit = event => {
     setForm({ title: event.title, description: event.description, date: event.date?.slice(0, 10), time: event.time, location: event.location, category: event.category });
-    setEditing(event._id); setShowForm(true);
+    setEditing(event.id); setShowForm(true);
   };
 
   const handleDelete = async id => {
@@ -119,7 +119,7 @@ export default function ManageEvents() {
         ) : (
           <div className="flex flex-col gap-4">
             {events.map(event => (
-              <motion.div key={event._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              <motion.div key={event.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold text-[#0038B8] bg-[#0038B8]/10 px-2 py-1 rounded-full capitalize mb-2 inline-block">{event.category}</span>
@@ -128,7 +128,7 @@ export default function ManageEvents() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleEdit(event)} className="p-2 text-[#0038B8] hover:bg-[#0038B8]/10 rounded-xl transition-colors"><Edit size={18} /></button>
-                  <button onClick={() => handleDelete(event._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={18} /></button>
+                  <button onClick={() => handleDelete(event.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={18} /></button>
                 </div>
               </motion.div>
             ))}

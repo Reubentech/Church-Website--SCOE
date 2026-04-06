@@ -36,7 +36,7 @@ export default function ManageBlog() {
 
   const handleEdit = p => {
     setForm({ title: p.title, excerpt: p.excerpt, content: p.content, category: p.category, author: p.author, tags: p.tags?.join(", ") || "", isFeatured: p.isFeatured, isPublished: p.isPublished });
-    setEditing(p._id); setShowForm(true);
+    setEditing(p.id); setShowForm(true);
   };
 
   const handleDelete = async id => {
@@ -128,7 +128,7 @@ export default function ManageBlog() {
         ) : (
           <div className="flex flex-col gap-4">
             {posts.map(p => (
-              <div key={p._id} className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
+              <div key={p.id} className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="text-xs font-bold text-[#0038B8] bg-[#0038B8]/10 px-2 py-1 rounded-full capitalize">{p.category}</span>
@@ -144,7 +144,7 @@ export default function ManageBlog() {
                 <div className="flex gap-2 ml-4">
                   <Link to={`/blog/${p.slug}`} target="_blank" className="p-2 text-green-500 hover:bg-green-50 rounded-xl"><Eye size={18} /></Link>
                   <button onClick={() => handleEdit(p)} className="p-2 text-[#0038B8] hover:bg-[#0038B8]/10 rounded-xl"><Edit size={18} /></button>
-                  <button onClick={() => handleDelete(p._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
+                  <button onClick={() => handleDelete(p.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
                 </div>
               </div>
             ))}

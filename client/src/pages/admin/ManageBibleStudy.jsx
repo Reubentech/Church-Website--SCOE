@@ -26,7 +26,7 @@ export default function ManageBibleStudy() {
     finally { setLoading(false); }
   };
 
-  const handleEdit = s => { setForm({ title: s.title, content: s.content, scripture: s.scripture, week: s.week, author: s.author }); setEditing(s._id); setShowForm(true); };
+  const handleEdit = s => { setForm({ title: s.title, content: s.content, scripture: s.scripture, week: s.week, author: s.author }); setEditing(s.id); setShowForm(true); };
   const handleDelete = async id => { if (!confirm("Delete?")) return; await api.delete(`/bible-studies/${id}`); fetchStudies(); };
 
   return (
@@ -77,7 +77,7 @@ export default function ManageBibleStudy() {
         ) : (
           <div className="flex flex-col gap-4">
             {studies.map(s => (
-              <div key={s._id} className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
+              <div key={s.id} className="bg-white rounded-2xl p-6 shadow-sm border border-[#0038B8]/10 flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold text-[#0038B8] bg-[#0038B8]/10 px-2 py-1 rounded-full mb-2 inline-block">{s.week}</span>
                   <h3 className="text-[#001F6B] font-bold">{s.title}</h3>
@@ -85,7 +85,7 @@ export default function ManageBibleStudy() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleEdit(s)} className="p-2 text-[#0038B8] hover:bg-[#0038B8]/10 rounded-xl"><Edit size={18} /></button>
-                  <button onClick={() => handleDelete(s._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
+                  <button onClick={() => handleDelete(s.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={18} /></button>
                 </div>
               </div>
             ))}

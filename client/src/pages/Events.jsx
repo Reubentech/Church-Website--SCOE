@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Clock, MapPin, Users, Search } from "lucide-react";
 import { format, isPast, differenceInDays } from "date-fns";
@@ -89,9 +89,19 @@ function RSVPModal({ event, onClose }) {
   const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setSuccess(true);
-    setLoading(false);
+    try {
+      await api.post("/rsvp", {
+        eventId: event.id,
+        eventTitle: event.title,
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        guests: form.guests
+      });
+      setSuccess(true);
+    } catch (err) {
+      alert(err.response?.data?.message || "RSVP failed. Please try again.");
+    } finally { setLoading(false); }
   };
 
   return (
@@ -108,17 +118,17 @@ function RSVPModal({ event, onClose }) {
               <p style={{ color: "#0038B8", fontSize: "14px", fontWeight: "600", margin: "4px 0 0 0" }}>{event.title}</p>
               <p style={{ color: "#6b7280", fontSize: "12px", margin: "4px 0 0 0" }}>{format(new Date(event.date), "EEEE, MMMM d, yyyy")} at {event.time}</p>
             </div>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: "#9ca3af" }}>✕</button>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: "#9ca3af" }}>?</button>
           </div>
 
           {success ? (
             <div style={{ textAlign: "center", padding: "24px 0" }}>
-              <div style={{ fontSize: "56px", marginBottom: "12px" }}>✅</div>
+              <div style={{ fontSize: "56px", marginBottom: "12px" }}>?</div>
               <h4 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "20px", marginBottom: "8px" }}>RSVP Confirmed!</h4>
               <p style={{ color: "#6b7280", fontSize: "14px", marginBottom: "20px" }}>We look forward to seeing you at {event.title}.</p>
               <div style={{ background: "#F0F5FF", borderRadius: "12px", padding: "16px", marginBottom: "20px" }}>
                 <p style={{ color: "#001F6B", fontWeight: "600", fontSize: "14px", margin: 0 }}>{format(new Date(event.date), "EEEE, MMMM d, yyyy")}</p>
-                <p style={{ color: "#0038B8", fontSize: "13px", margin: "4px 0 0 0" }}>{event.time} · {event.location}</p>
+                <p style={{ color: "#0038B8", fontSize: "13px", margin: "4px 0 0 0" }}>{event.time} � {event.location}</p>
               </div>
               <button onClick={onClose} style={{ background: "#0038B8", color: "white", fontWeight: "bold", padding: "12px 24px", borderRadius: "50px", border: "none", cursor: "pointer" }}>Close</button>
             </div>
@@ -169,7 +179,7 @@ function EventCard({ event, onRSVP, featured = false }) {
       className={`bg-white rounded-3xl overflow-hidden border shadow-sm hover:shadow-xl transition-all duration-300 ${featured ? "border-[#0038B8] ring-2 ring-[#0038B8]/20" : "border-gray-100"} ${past ? "opacity-60" : ""}`}
     >
       <div style={{ height: "3px", background: barColor }} />
-      {featured && <div className="bg-[#0038B8] text-white text-xs font-bold px-4 py-1.5">⭐ Featured Event</div>}
+      {featured && <div className="bg-[#0038B8] text-white text-xs font-bold px-4 py-1.5">? Featured Event</div>}
       <div className="p-6">
         <div className="flex items-start justify-between mb-3">
           <span className={`text-xs font-bold px-3 py-1 rounded-full capitalize ${colors.bg} ${colors.text}`}>
@@ -340,7 +350,7 @@ export default function Events() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {upcoming.map((event, i) => (
-                    <EventCard key={event._id} event={event} onRSVP={setSelectedEvent} featured={i === 0 && !search && activeCategory === "all"} />
+                    <EventCard key={event.id} event={event} onRSVP={setSelectedEvent} featured={i === 0 && !search && activeCategory === "all"} />
                   ))}
                 </div>
               </div>
@@ -355,7 +365,7 @@ export default function Events() {
                   <span className="text-sm font-normal text-[#001F6B]/40 ml-2">({past.length})</span>
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {past.map(event => <EventCard key={event._id} event={event} onRSVP={setSelectedEvent} />)}
+                  {past.map(event => <EventCard key={event.id} event={event} onRSVP={setSelectedEvent} />)}
                 </div>
               </div>
             )}
@@ -369,3 +379,4 @@ export default function Events() {
     </div>
   );
 }
+

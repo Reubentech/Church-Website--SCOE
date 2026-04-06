@@ -1,73 +1,73 @@
-﻿const BlogPost = require("../models/BlogPost.model");
+const prisma = require("../lib/prisma");
 
-const generateSlug = (title) => {
-  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now();
-};
+const generateSlug = (title) =>
+  title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now();
 
 exports.getPosts = async (req, res) => {
   try {
     const { category, search } = req.query;
-    const query = { isPublished: true };
-    if (category && category !== "all") query.category = category;
+    const where = { isPublished: true };
+    if (category && category !== "all") where.category = category;
     if (search && search.trim()) {
-      const term = search.trim();
-      query.$or = [
-        { title: { $regex: term, $options: "i" } },
-        { excerpt: { $regex: term, $options: "i" } },
-        { content: { $regex: term, $options: "i" } },
-        { author: { $regex: term, $options: "i" } },
+      where.OR = [
+        { title: { contains: search.trim(), mode: "insensitive" } },
+        { excerpt: { contains: search.trim(), mode: "insensitive" } },
+        { content: { contains: search.trim(), mode: "insensitive" } },
+        { author: { contains: search.trim(), mode: "insensitive" } },
       ];
     }
-    const posts = await BlogPost.find(query).sort({ createdAt: -1 });
+    const posts = await prisma.blogPost.findMany({ where, orderBy: { createdAt: "desc" } });
     res.json({ success: true, data: posts });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
 exports.getPost = async (req, res) => {
   try {
-    const post = await BlogPost.findOneAndUpdate(
-      { slug: req.params.slug, isPublished: true },
-      { $inc: { views: 1 } },
-      { new: true }
-    );
+    const post = await prisma.blogPost.findFirst({ where: { slug: req.params.slug, isPublished: true } });
     if (!post) return res.status(404).json({ success: false, message: "Post not found" });
-    res.json({ success: true, data: post });
+    await prisma.blogPost.update({ where: { id: post.id }, data: { views: { increment: 1 } } });
+    res.json({ success: true, data: { ...post, views: post.views + 1 } });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
 exports.getFeaturedPosts = async (req, res) => {
   try {
-    const posts = await BlogPost.find({ isPublished: true, isFeatured: true }).sort({ createdAt: -1 }).limit(3);
+    const posts = await prisma.blogPost.findMany({ where: { isPublished: true, isFeatured: true }, orderBy: { createdAt: "desc" }, take: 3 });
     res.json({ success: true, data: posts });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
 exports.getAllPosts = async (req, res) => {
   try {
-    const posts = await BlogPost.find().sort({ createdAt: -1 });
+    const posts = await prisma.blogPost.findMany({ orderBy: { createdAt: "desc" } });
     res.json({ success: true, data: posts });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
 exports.createPost = async (req, res) => {
   try {
-    const slug = generateSlug(req.body.title);
-    const post = await BlogPost.create({ ...req.body, slug, createdBy: req.user._id });
+    const { title, excerpt, content, category, author, thumbnail, tags, isPublished, isFeatured } = req.body;
+    const slug = generateSlug(title);
+    const post = await prisma.blogPost.create({ data: { title, slug, excerpt, content, category: category || "news", author, thumbnail: thumbnail || "", tags: Array.isArray(tags) ? tags : (tags ? tags.split(",").map(t => t.trim()) : []), isPublished: isPublished !== undefined ? Boolean(isPublished) : true, isFeatured: Boolean(isFeatured), createdBy: req.user.id } });
     res.status(201).json({ success: true, data: post });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
 exports.updatePost = async (req, res) => {
   try {
-    const post = await BlogPost.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!post) return res.status(404).json({ success: false, message: "Post not found" });
+    const data = { ...req.body };
+    if (data.isPublished !== undefined) data.isPublished = Boolean(data.isPublished);
+    if (data.isFeatured !== undefined) data.isFeatured = Boolean(data.isFeatured);
+    if (data.tags && !Array.isArray(data.tags)) data.tags = data.tags.split(",").map(t => t.trim());
+    delete data.createdBy;
+    const post = await prisma.blogPost.update({ where: { id: req.params.id }, data });
     res.json({ success: true, data: post });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
 exports.deletePost = async (req, res) => {
   try {
-    await BlogPost.findByIdAndDelete(req.params.id);
+    await prisma.blogPost.delete({ where: { id: req.params.id } });
     res.json({ success: true, message: "Post deleted" });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };

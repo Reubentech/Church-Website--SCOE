@@ -96,13 +96,13 @@ export default function ManageGallery() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {images.map(img => (
-              <motion.div key={img._id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              <motion.div key={img.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                 className="relative group rounded-2xl overflow-hidden shadow-md aspect-square border border-[#0038B8]/10">
                 <img src={`${SERVER_URL}${img.imageUrl}`} alt={img.title} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-[#001F6B]/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
                   <div className="text-center">
                     <p className="text-white font-bold text-sm mb-3">{img.title}</p>
-                    <button onClick={() => handleDelete(img._id)} className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors">
+                    <button onClick={() => handleDelete(img.id)} className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors">
                       <Trash2 size={16} />
                     </button>
                   </div>
