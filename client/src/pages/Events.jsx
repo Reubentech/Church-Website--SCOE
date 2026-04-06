@@ -128,7 +128,7 @@ function RSVPModal({ event, onClose }) {
               <p style={{ color: "#6b7280", fontSize: "14px", marginBottom: "20px" }}>We look forward to seeing you at {event.title}.</p>
               <div style={{ background: "#F0F5FF", borderRadius: "12px", padding: "16px", marginBottom: "20px" }}>
                 <p style={{ color: "#001F6B", fontWeight: "600", fontSize: "14px", margin: 0 }}>{format(new Date(event.date), "EEEE, MMMM d, yyyy")}</p>
-                <p style={{ color: "#0038B8", fontSize: "13px", margin: "4px 0 0 0" }}>{event.time} · {event.location}</p>
+                <p style={{ color: "#0038B8", fontSize: "13px", margin: "4px 0 0 0" }}>{event.time} Â· {event.location}</p>
               </div>
               <button onClick={onClose} style={{ background: "#0038B8", color: "white", fontWeight: "bold", padding: "12px 24px", borderRadius: "50px", border: "none", cursor: "pointer" }}>Close</button>
             </div>
