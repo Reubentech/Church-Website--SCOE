@@ -1,6 +1,6 @@
 # Sabbatarian Church of Elohim — Website & Admin Portal
 
-A full-stack church management system with a public website and a complete admin dashboard, built on the MERN stack.
+A full-stack church management system with a public website and a complete admin dashboard. Originally built on the MERN stack, now running on **PostgreSQL (Neon) + Prisma**.
 
 ---
 
@@ -42,7 +42,8 @@ A full-stack church management system with a public website and a complete admin
 | Routing | React Router DOM 7 |
 | Charts | Recharts |
 | Backend | Node.js, Express 5 |
-| Database | MongoDB (Mongoose 9) |
+| Database | **PostgreSQL — Neon** (migrated from MongoDB) |
+| ORM | **Prisma** (replaced Mongoose) |
 | Auth | JSON Web Tokens (JWT) |
 | File Uploads | Multer |
 | Email | Nodemailer |
@@ -65,14 +66,17 @@ sabbatarian-church/
 │   └── vite.config.js
 │
 └── server/                  # Express backend
+    ├── prisma/
+    │   └── schema.prisma    # Prisma database schema (PostgreSQL)
     ├── src/
-    │   ├── controllers/     # Business logic (17 controllers)
-    │   ├── models/          # Mongoose schemas (15 models)
+    │   ├── controllers/     # Business logic (18 controllers)
+    │   ├── models/          # Legacy model references
     │   ├── routes/          # API route definitions
     │   ├── middleware/       # Auth, file upload middleware
-    │   └── utils/           # JWT, email, M-Pesa helpers
+    │   ├── lib/             # Prisma client instance
+    │   └── utils/           # Email, M-Pesa, scheduler helpers
     ├── uploads/             # Uploaded files (local storage)
-    ├── seed.js              # Seed initial admin user
+    ├── seedpostgres.js      # Seed admin users into PostgreSQL
     └── index.js             # Server entry point
 ```
 
@@ -82,7 +86,7 @@ sabbatarian-church/
 
 ### Prerequisites
 - Node.js 18+
-- MongoDB (local or Atlas)
+- A PostgreSQL database — [Neon](https://neon.tech) (free tier works)
 - A Gmail account with an App Password for email
 - Safaricom Daraja API credentials (for M-Pesa)
 
@@ -97,8 +101,7 @@ cd sabbatarian-church
 
 ```bash
 cd server
-cp .env.example .env
-# Edit .env with your values
+cp .env.example .env   # then edit .env with your values
 npm install
 ```
 
@@ -109,16 +112,30 @@ cd ../client
 npm install
 ```
 
-### 4. Seed the admin user
+### 4. Push the database schema
 
 ```bash
 cd server
-node seed.js
+npx prisma db push
 ```
 
-This creates the admin account using `ADMIN_EMAIL` and `ADMIN_PASSWORD` from your `.env`.
+### 5. Seed admin users
 
-### 5. Run in development
+```bash
+node seedpostgres.js
+```
+
+This creates three accounts in the database:
+
+| Email | Password | Role |
+|-------|----------|------|
+| admin@church.org | Admin@1234 | admin |
+| reuben@church.org | Reuben@1234 | admin |
+| member@church.org | Member@1234 | user |
+
+> Change these passwords immediately after first login.
+
+### 6. Run in development
 
 In two separate terminals:
 
@@ -141,14 +158,15 @@ Copy `server/.env.example` to `server/.env` and fill in your values:
 | Variable | Description |
 |----------|-------------|
 | `PORT` | Server port (default: 5000) |
-| `MONGODB_URI` | MongoDB connection string |
+| `DATABASE_URL` | **PostgreSQL connection string (Neon)** — e.g. `postgresql://user:pass@host/db?sslmode=require` |
 | `JWT_SECRET` | Long random secret for signing JWTs |
 | `JWT_EXPIRE` | Token expiry duration (e.g. `30d`) |
+| `NODE_ENV` | `development` or `production` |
 | `CLIENT_URL` | Frontend origin for CORS (e.g. `http://localhost:5173`) |
+| `EMAIL_HOST` | SMTP host (e.g. `smtp.gmail.com`) |
+| `EMAIL_PORT` | SMTP port (e.g. `587`) |
 | `EMAIL_USER` | Gmail address for sending emails |
 | `EMAIL_PASS` | Gmail App Password |
-| `ADMIN_EMAIL` | Initial admin email (used by seed.js) |
-| `ADMIN_PASSWORD` | Initial admin password (used by seed.js) |
 | `MPESA_CONSUMER_KEY` | Safaricom Daraja consumer key |
 | `MPESA_CONSUMER_SECRET` | Safaricom Daraja consumer secret |
 | `MPESA_SHORTCODE` | M-Pesa shortcode |
@@ -200,7 +218,23 @@ VITE_API_URL=http://localhost:5000/api
 
 ## Default Admin Login
 
-After running `seed.js`, log in at `/login` with the credentials set in your `.env` (`ADMIN_EMAIL` / `ADMIN_PASSWORD`). Change the password immediately after first login.
+After running `seedpostgres.js`, log in at `/login` with:
+
+- **Email:** `admin@church.org`
+- **Password:** `Admin@1234`
+
+Change the password immediately after first login.
+
+---
+
+## Database Migration Notes
+
+The app was originally built on **MongoDB + Mongoose**. It has been fully migrated to **PostgreSQL + Prisma**:
+
+- All Mongoose models replaced by the Prisma schema at `server/prisma/schema.prisma`
+- MongoDB `_id` (ObjectId) replaced with Prisma `id` (CUID) across all frontend and backend code
+- `seedpostgres.js` replaces the old MongoDB `createuser.js` seeder
+- RSVP system added with full admin management page
 
 ---
 
