@@ -77,6 +77,7 @@ function AppRoutes() {
           <Route path="/admin/blog" element={<AdminRoute><ManageBlog /></AdminRoute>} />
           <Route path="/admin/bulletin" element={<AdminRoute><ManageBulletin /></AdminRoute>} />
           <Route path="/admin/rsvp" element={<AdminRoute><ManageRSVP /></AdminRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <Footer />

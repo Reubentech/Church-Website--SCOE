@@ -29,9 +29,8 @@ export default function ManageSermons() {
       const data = new FormData();
       Object.entries(form).forEach(([k, v]) => data.append(k, v));
       if (file) data.append("file", file);
-      const config = { headers: { "Content-Type": "multipart/form-data" } };
       if (editing) await api.put(`/sermons/${editing}`, form);
-      else await api.post("/sermons", data, config);
+      else await api.post("/sermons", data);
       setForm(empty); setEditing(null); setShowForm(false); setFile(null);
       fetchSermons();
     } catch (err) { alert(err.response?.data?.message || "Error saving sermon"); }
