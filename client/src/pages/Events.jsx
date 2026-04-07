@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Clock, MapPin, Users, Search } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Search, ChevronLeft, ChevronRight, LayoutGrid, List } from "lucide-react";
 import { format, isPast, differenceInDays } from "date-fns";
 import api from "../utils/api";
 
@@ -23,6 +23,35 @@ const categoryBarColor = {
 };
 
 function pad(n) { return String(n).padStart(2, "0"); }
+
+// Extract date parts from an ISO string or Date without timezone shift
+function parseDateParts(dateVal) {
+  const s = typeof dateVal === "string" ? dateVal : new Date(dateVal).toISOString();
+  const [datePart] = s.split("T");
+  const [y, m, d] = datePart.split("-").map(Number);
+  return { year: y, month: m - 1, day: d }; // month is 0-based
+}
+
+// Get Hebrew date info via browser Intl API (no external library needed)
+function getHebrewDateInfo(date) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-u-ca-hebrew", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }).formatToParts(date);
+    const get = (type) => parts.find(p => p.type === type)?.value ?? "";
+    return {
+      day: parseInt(get("day")) || 0,
+      month: get("month"),
+      year: get("year"),
+    };
+  } catch {
+    return { day: 0, month: "", year: "" };
+  }
+}
+
+const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Shabbat"];
 
 function useCountdown(targetDate) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -118,12 +147,12 @@ function RSVPModal({ event, onClose }) {
               <p style={{ color: "#0038B8", fontSize: "14px", fontWeight: "600", margin: "4px 0 0 0" }}>{event.title}</p>
               <p style={{ color: "#6b7280", fontSize: "12px", margin: "4px 0 0 0" }}>{format(new Date(event.date), "EEEE, MMMM d, yyyy")} at {event.time}</p>
             </div>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: "#9ca3af" }}>?</button>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: "#9ca3af" }}>×</button>
           </div>
 
           {success ? (
             <div style={{ textAlign: "center", padding: "24px 0" }}>
-              <div style={{ fontSize: "56px", marginBottom: "12px" }}>?</div>
+              <div style={{ fontSize: "56px", marginBottom: "12px" }}>✓</div>
               <h4 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "20px", marginBottom: "8px" }}>RSVP Confirmed!</h4>
               <p style={{ color: "#6b7280", fontSize: "14px", marginBottom: "20px" }}>We look forward to seeing you at {event.title}.</p>
               <div style={{ background: "#F0F5FF", borderRadius: "12px", padding: "16px", marginBottom: "20px" }}>
@@ -179,7 +208,7 @@ function EventCard({ event, onRSVP, featured = false }) {
       className={`bg-white rounded-3xl overflow-hidden border shadow-sm hover:shadow-xl transition-all duration-300 ${featured ? "border-[#0038B8] ring-2 ring-[#0038B8]/20" : "border-gray-100"} ${past ? "opacity-60" : ""}`}
     >
       <div style={{ height: "3px", background: barColor }} />
-      {featured && <div className="bg-[#0038B8] text-white text-xs font-bold px-4 py-1.5">? Featured Event</div>}
+      {featured && <div className="bg-[#0038B8] text-white text-xs font-bold px-4 py-1.5">Featured Event</div>}
       <div className="p-6">
         <div className="flex items-start justify-between mb-3">
           <span className={`text-xs font-bold px-3 py-1 rounded-full capitalize ${colors.bg} ${colors.text}`}>
@@ -216,6 +245,268 @@ function EventCard({ event, onRSVP, featured = false }) {
   );
 }
 
+// ─── Dual Calendar (Gregorian + Hebrew/Biblical) ───────────────────────────
+
+function DualCalendar({ events, onRSVP }) {
+  const today = new Date();
+  const [navDate, setNavDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  const year = navDate.getFullYear();
+  const month = navDate.getMonth();
+
+  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Build grid cells: leading nulls + day dates
+  const cells = [];
+  for (let i = 0; i < firstDayOfMonth; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+
+  // Hebrew months that appear in this Gregorian month (for header)
+  const hebrewMonthsInView = [...new Set(
+    Array.from({ length: daysInMonth }, (_, i) =>
+      getHebrewDateInfo(new Date(year, month, i + 1)).month
+    ).filter(Boolean)
+  )];
+  const hebrewYear = getHebrewDateInfo(new Date(year, month, Math.ceil(daysInMonth / 2))).year;
+
+  // Index events by local date key "Y-M-D" (0-based month)
+  const eventsByDate = {};
+  events.forEach(event => {
+    const { year: ey, month: em, day: ed } = parseDateParts(event.date);
+    const key = `${ey}-${em}-${ed}`;
+    if (!eventsByDate[key]) eventsByDate[key] = [];
+    eventsByDate[key].push(event);
+  });
+
+  const cellKey = (date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+  const selectedEvents = selectedDay ? (eventsByDate[cellKey(selectedDay)] || []) : [];
+
+  const prevMonth = () => { setNavDate(new Date(year, month - 1, 1)); setSelectedDay(null); };
+  const nextMonth = () => { setNavDate(new Date(year, month + 1, 1)); setSelectedDay(null); };
+  const goToday   = () => { setNavDate(new Date(today.getFullYear(), today.getMonth(), 1)); setSelectedDay(null); };
+
+  return (
+    <div className="space-y-6">
+      {/* Calendar card */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+
+        {/* ── Header ── */}
+        <div className="bg-[#0038B8] px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+          <button onClick={prevMonth}
+            className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all">
+            <ChevronLeft size={20} />
+          </button>
+
+          <div className="text-center flex-1">
+            {/* Gregorian month */}
+            <h3 className="text-white text-xl font-bold leading-tight">
+              {format(navDate, "MMMM yyyy")}
+            </h3>
+            {/* Hebrew month(s) in sync */}
+            <p className="text-white/70 text-sm font-semibold mt-0.5">
+              {hebrewMonthsInView.join(" / ")}{hebrewYear ? ` ${hebrewYear}` : ""}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button onClick={goToday}
+              className="text-white/80 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 text-xs font-bold border border-white/20 transition-all">
+              Today
+            </button>
+            <button onClick={nextMonth}
+              className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all">
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Calendar legend strip ── */}
+        <div className="bg-[#001F6B]/5 px-4 sm:px-6 py-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-[#001F6B]/60 border-b border-gray-100">
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded bg-[#0038B8] inline-block" /> Today
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="font-bold text-[#0038B8]">Shabbat</span> = 7th day highlighted
+          </span>
+          <span>Hebrew dates shown below Gregorian in blue</span>
+          <span>Rosh Chodesh (new moon) shown in italics</span>
+        </div>
+
+        {/* ── Day-of-week headers ── */}
+        <div className="grid grid-cols-7 border-b border-gray-100">
+          {WEEK_DAYS.map((d, i) => (
+            <div key={d}
+              className={`text-center py-3 text-xs font-bold uppercase tracking-wider
+                ${i === 6 ? "text-[#0038B8] bg-[#F0F5FF]" : "text-[#001F6B]/40"}`}>
+              <span className="hidden sm:inline">{d}</span>
+              <span className="sm:hidden">{d.slice(0, 2)}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Calendar grid ── */}
+        <div className="grid grid-cols-7">
+          {cells.map((date, i) => {
+            if (!date) {
+              return (
+                <div key={`empty-${i}`}
+                  className={`min-h-[70px] sm:min-h-[90px] border-b border-r border-gray-50 bg-gray-50/40
+                    ${i % 7 === 6 ? "bg-[#F0F5FF]/30" : ""}`} />
+              );
+            }
+
+            const key = cellKey(date);
+            const dayEvents = eventsByDate[key] || [];
+            const heb = getHebrewDateInfo(date);
+            const isToday = date.toDateString() === today.toDateString();
+            const isSelected = selectedDay?.toDateString() === date.toDateString();
+            const isNewHebMonth = heb.day === 1; // Rosh Chodesh
+            const isSabbath = date.getDay() === 6;
+            const isPastDay = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+            return (
+              <div
+                key={key}
+                onClick={() => setSelectedDay(isSelected ? null : date)}
+                className={`min-h-[70px] sm:min-h-[90px] p-1.5 sm:p-2 border-b border-r border-gray-100 cursor-pointer relative transition-colors
+                  ${isToday ? "bg-[#0038B8]" : isSelected ? "bg-[#EDF2FF]" : isSabbath ? "bg-[#F0F5FF]/60" : "bg-white"}
+                  ${!isToday && !isSelected ? "hover:bg-[#F0F5FF]" : ""}
+                  ${isPastDay && !isToday ? "opacity-55" : ""}
+                `}
+              >
+                {/* Gregorian day number */}
+                <div className={`text-sm sm:text-base font-bold leading-none
+                  ${isToday ? "text-white" : isSabbath ? "text-[#0038B8]" : "text-[#001F6B]"}`}>
+                  {date.getDate()}
+                </div>
+
+                {/* Hebrew date */}
+                <div className={`mt-0.5 leading-none ${isToday ? "text-white/80" : "text-[#0038B8]/80"}`}>
+                  {isNewHebMonth && (
+                    <span className={`block text-[9px] sm:text-[10px] font-bold italic truncate
+                      ${isToday ? "text-white" : "text-[#0038B8]"}`}>
+                      {heb.month}
+                    </span>
+                  )}
+                  <span className="text-[10px] sm:text-xs font-semibold">{heb.day || ""}</span>
+                </div>
+
+                {/* Event dots */}
+                {dayEvents.length > 0 && (
+                  <div className="absolute bottom-1.5 left-1.5 right-1.5 flex flex-wrap gap-0.5 items-center">
+                    {dayEvents.slice(0, 3).map((ev, idx) => (
+                      <span key={idx}
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ background: isToday ? "rgba(255,255,255,0.85)" : (categoryBarColor[ev.category] || "#0038B8") }}
+                        title={ev.title}
+                      />
+                    ))}
+                    {dayEvents.length > 3 && (
+                      <span className={`text-[9px] font-bold ${isToday ? "text-white/70" : "text-[#001F6B]/40"}`}>
+                        +{dayEvents.length - 3}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Category dot legend ── */}
+      <div className="flex flex-wrap gap-x-5 gap-y-2 px-2">
+        {Object.entries(categoryBarColor).map(([cat, color]) => (
+          <span key={cat} className="flex items-center gap-1.5 text-xs text-[#001F6B]/60">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+            {cat.replace("-", " ")}
+          </span>
+        ))}
+      </div>
+
+      {/* ── Selected day panel ── */}
+      <AnimatePresence>
+        {selectedDay && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="bg-white rounded-3xl border border-[#0038B8]/20 shadow-sm overflow-hidden"
+          >
+            {/* Panel header */}
+            <div className="bg-[#F0F5FF] px-6 py-4 border-b border-[#0038B8]/10 flex items-start justify-between gap-4">
+              <div>
+                <h4 className="text-[#001F6B] font-bold text-lg leading-tight">
+                  {format(selectedDay, "EEEE, MMMM d, yyyy")}
+                </h4>
+                {(() => {
+                  const h = getHebrewDateInfo(selectedDay);
+                  return h.day ? (
+                    <p className="text-[#0038B8] text-sm font-semibold mt-1">
+                      {h.day} {h.month} {h.year} (Hebrew Calendar)
+                    </p>
+                  ) : null;
+                })()}
+              </div>
+              <button onClick={() => setSelectedDay(null)}
+                className="text-[#001F6B]/40 hover:text-[#001F6B] text-2xl leading-none font-bold mt-0.5 transition-colors">
+                ×
+              </button>
+            </div>
+
+            {/* Panel body */}
+            <div className="p-6">
+              {selectedEvents.length === 0 ? (
+                <div className="text-center py-6">
+                  <Calendar size={36} className="text-[#0038B8]/20 mx-auto mb-3" />
+                  <p className="text-[#001F6B]/40 text-sm">No events scheduled on this day.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {selectedEvents.map(event => {
+                    const past = isPast(new Date(event.date));
+                    return (
+                      <div key={event.id}
+                        className="flex gap-4 items-start p-4 rounded-2xl border border-gray-100 hover:border-[#0038B8]/20 transition-all">
+                        <div className="w-1 self-stretch rounded-full shrink-0"
+                          style={{ background: categoryBarColor[event.category] || "#0038B8" }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 flex-wrap">
+                            <h5 className="text-[#001F6B] font-bold text-sm">{event.title}</h5>
+                            <CountdownBadge date={event.date} />
+                          </div>
+                          <p className="text-[#001F6B]/60 text-xs mt-1 line-clamp-2 leading-relaxed">
+                            {event.description}
+                          </p>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-[#001F6B]/50 flex-wrap">
+                            <span className="flex items-center gap-1"><Clock size={11} /> {event.time}</span>
+                            <span className="flex items-center gap-1"><MapPin size={11} /> {event.location}</span>
+                          </div>
+                        </div>
+                        {!past && (
+                          <button onClick={() => onRSVP(event)}
+                            className="shrink-0 bg-[#0038B8] text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-[#001F6B] transition-all flex items-center gap-1.5">
+                            <Users size={12} /> RSVP
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Main Events Page ──────────────────────────────────────────────────────
+
 export default function Events() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -223,6 +514,7 @@ export default function Events() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [showPast, setShowPast] = useState(false);
+  const [view, setView] = useState("list"); // "list" | "calendar"
 
   useEffect(() => {
     api.get("/events").then(res => setEvents(res.data.data || [])).catch(() => setEvents([])).finally(() => setLoading(false));
@@ -282,10 +574,28 @@ export default function Events() {
               </button>
             ))}
           </div>
-          <label className="flex items-center gap-2 cursor-pointer ml-auto">
-            <input type="checkbox" checked={showPast} onChange={e => setShowPast(e.target.checked)} className="w-4 h-4" />
-            <span className="text-[#001F6B]/60 text-xs font-semibold">Show past events</span>
-          </label>
+          {view === "list" && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={showPast} onChange={e => setShowPast(e.target.checked)} className="w-4 h-4" />
+              <span className="text-[#001F6B]/60 text-xs font-semibold">Show past events</span>
+            </label>
+          )}
+
+          {/* View toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 ml-auto">
+            <button
+              onClick={() => setView("list")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${view === "list" ? "bg-white text-[#0038B8] shadow-sm" : "text-gray-500 hover:text-[#0038B8]"}`}
+            >
+              <List size={14} /> List
+            </button>
+            <button
+              onClick={() => setView("calendar")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${view === "calendar" ? "bg-white text-[#0038B8] shadow-sm" : "text-gray-500 hover:text-[#0038B8]"}`}
+            >
+              <LayoutGrid size={14} /> Calendar
+            </button>
+          </div>
         </div>
       </div>
 
@@ -295,6 +605,11 @@ export default function Events() {
             <div className="w-12 h-12 border-4 border-[#0038B8]/20 border-t-[#0038B8] rounded-full animate-spin" />
             <p className="text-[#001F6B]/50 text-sm">Loading events...</p>
           </div>
+        ) : view === "calendar" ? (
+          /* ── Calendar View ── */
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <DualCalendar events={filtered} onRSVP={setSelectedEvent} />
+          </motion.div>
         ) : filtered.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
             <Calendar size={56} className="text-[#0038B8]/20 mx-auto mb-4" />
@@ -303,6 +618,7 @@ export default function Events() {
             {search && <button onClick={() => setSearch("")} className="bg-[#0038B8] text-white font-bold px-6 py-2 rounded-full text-sm">Clear Search</button>}
           </motion.div>
         ) : (
+          /* ── List View ── */
           <>
             {/* Featured + Live Countdown */}
             {featured && !search && activeCategory === "all" && (
@@ -311,7 +627,6 @@ export default function Events() {
                   <span className="w-8 h-1 bg-[#0038B8] inline-block rounded" /> Next Event
                 </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Featured event card */}
                   <div className="bg-[#0038B8] rounded-3xl p-8 text-white relative overflow-hidden">
                     <div className="absolute top-0 right-0 opacity-10">
                       <svg width="200" height="200" viewBox="0 0 100 100">
@@ -333,8 +648,6 @@ export default function Events() {
                       <Users size={16} /> RSVP Now
                     </button>
                   </div>
-
-                  {/* Live countdown */}
                   <FeaturedCountdown date={featured.date} />
                 </div>
               </motion.div>
@@ -379,4 +692,3 @@ export default function Events() {
     </div>
   );
 }
-
