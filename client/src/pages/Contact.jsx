@@ -54,7 +54,7 @@ export default function Contact() {
           <div className="flex flex-col gap-6">
             {[
               { icon: MapPin, label: "Location", value: "Nyahururu, Kenya" },
-              { icon: Mail, label: "Email", value: "sabbathtarianchurchofelohom@gmail.com" },
+              { icon: Mail, label: "Email", value: "sabbathtarianchurchofelohim@gmail.com" },
               { icon: Phone, label: "Phone", value: "+254 722 867 734" },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-center gap-4">
