@@ -1,5 +1,6 @@
 ﻿import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import Loader from "./components/ui/Loader";
@@ -14,8 +15,9 @@ import Register from "./pages/Register";
 import PrayerRequest from "./pages/PrayerRequest";
 import BibleStudy from "./pages/BibleStudy";
 import Blog from "./pages/Blog";
-import BlogPost from "./pages/BlogPost";
 import Bulletin from "./pages/Bulletin";
+import HebrewCalendar from "./components/HebrewCalendar";
+import TorahReadingPlan from "./components/TorahReadingPlan";
 import Dashboard from "./pages/admin/Dashboard";
 import ManageEvents from "./pages/admin/ManageEvents";
 import ManageSermons from "./pages/admin/ManageSermons";
@@ -57,8 +59,9 @@ function AppRoutes() {
           <Route path="/prayer-request" element={<PrayerRequest />} />
           <Route path="/bible-study" element={<BibleStudy />} />
           <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/bulletin" element={<Bulletin />} />
+          <Route path="/hebrew-calendar" element={<HebrewCalendar />} />
+          <Route path="/torah-reading-plan" element={<TorahReadingPlan />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
@@ -77,7 +80,6 @@ function AppRoutes() {
           <Route path="/admin/blog" element={<AdminRoute><ManageBlog /></AdminRoute>} />
           <Route path="/admin/bulletin" element={<AdminRoute><ManageBulletin /></AdminRoute>} />
           <Route path="/admin/rsvp" element={<AdminRoute><ManageRSVP /></AdminRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <Footer />
@@ -89,7 +91,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <LanguageProvider>
+          <AppRoutes />
+        </LanguageProvider>
       </AuthProvider>
     </BrowserRouter>
   );
