@@ -1,16 +1,62 @@
 ﻿import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Headphones, Video, Lock, ExternalLink, X, Phone, CheckCircle } from "lucide-react";
+import { FileText, Headphones, Video, Lock, Play } from "lucide-react";
 import { format } from "date-fns";
-import api, { SERVER_URL } from "../../utils/api";
+import api from "../../utils/api";
 
 const icons = { pdf: FileText, audio: Headphones, video: Video };
 
-function MpesaModal({ sermon, onClose }) {
+function MediaPlayer({ sermon, onClose }) {
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
+      onClick={onClose}>
+      <div
+        style={{ backgroundColor: "white", borderRadius: "20px", width: "100%", maxWidth: "800px", overflow: "hidden", boxShadow: "0 25px 50px rgba(0,0,0,0.5)" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ height: "4px", backgroundColor: "#0038B8" }} />
+        <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f0f0f0" }}>
+          <div>
+            <h3 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "16px", margin: 0 }}>{sermon.title}</h3>
+            <p style={{ color: "#0038B8", fontSize: "12px", margin: "2px 0 0 0" }}>By {sermon.speaker}</p>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#001F6B", opacity: 0.5, fontSize: "22px" }}>✕</button>
+        </div>
+        <div>
+          {sermon.type === "video" && (
+            <video controls autoPlay style={{ width: "100%", maxHeight: "450px", backgroundColor: "#000" }} src={sermon.fileUrl}>
+              Your browser does not support video playback.
+            </video>
+          )}
+          {sermon.type === "audio" && (
+            <div style={{ padding: "40px 24px", backgroundColor: "#F0F5FF" }}>
+              <div style={{ textAlign: "center", marginBottom: "24px" }}>
+                <div style={{ width: "80px", height: "80px", backgroundColor: "#0038B8", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  <span style={{ fontSize: "32px" }}>🎵</span>
+                </div>
+                <p style={{ color: "#001F6B", fontWeight: "bold", margin: 0 }}>{sermon.title}</p>
+                <p style={{ color: "#001F6B", opacity: 0.5, fontSize: "14px", margin: "4px 0 0 0" }}>{sermon.speaker}</p>
+              </div>
+              <audio controls autoPlay style={{ width: "100%" }} src={sermon.fileUrl}>
+                Your browser does not support audio playback.
+              </audio>
+            </div>
+          )}
+          {sermon.type === "pdf" && (
+            <div style={{ height: "500px" }}>
+              <iframe src={sermon.fileUrl} style={{ width: "100%", height: "100%", border: "none" }} title={sermon.title} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MpesaModal({ sermon, onClose, onPaymentSuccess }) {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState("input");
-  const [checkoutId, setCheckoutId] = useState("");
   const [receipt, setReceipt] = useState("");
   const [error, setError] = useState("");
 
@@ -20,7 +66,6 @@ function MpesaModal({ sermon, onClose }) {
     setError("");
     try {
       const res = await api.post("/mpesa/stk-push", { phone, sermonId: sermon.id });
-      setCheckoutId(res.data.checkoutRequestId);
       setStep("waiting");
       pollPaymentStatus(res.data.checkoutRequestId);
     } catch (err) {
@@ -43,171 +88,179 @@ function MpesaModal({ sermon, onClose }) {
           clearInterval(interval);
           setStep("failed");
         }
-      } catch (err) {
-        clearInterval(interval);
-        setError("Could not verify payment status. Please contact support.");
-        setStep("failed");
-      }
-      if (attempts >= 20) {
-        clearInterval(interval);
-        setStep("failed");
-      }
+      } catch (err) {}
+      if (attempts >= 20) { clearInterval(interval); setStep("failed"); }
     }, 3000);
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4"
+    <div
+      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
       onClick={onClose}>
-      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9 }}
-        onClick={e => e.stopPropagation()}
-        className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
-        <div className="h-2 bg-[#0038B8]" />
-        <div className="p-8">
-          <div className="flex items-start justify-between mb-6">
+      <div
+        style={{ backgroundColor: "white", borderRadius: "24px", width: "100%", maxWidth: "440px", overflow: "hidden", boxShadow: "0 25px 50px rgba(0,0,0,0.3)" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ height: "6px", backgroundColor: "#0038B8" }} />
+        <div style={{ padding: "32px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
             <div>
-              <h3 className="text-[#001F6B] text-xl font-bold">Unlock Premium Sermon</h3>
-              <p className="text-[#0038B8] text-sm font-semibold mt-1">{sermon.title}</p>
+              <h3 style={{ color: "#001F6B", fontSize: "20px", fontWeight: "bold", margin: 0 }}>Unlock Premium Sermon</h3>
+              <p style={{ color: "#0038B8", fontSize: "14px", fontWeight: "600", margin: "4px 0 0 0" }}>{sermon.title}</p>
             </div>
-            <button onClick={onClose} className="text-[#001F6B]/30 hover:text-[#001F6B]"><X size={20} /></button>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#001F6B", opacity: 0.4, fontSize: "20px" }}>✕</button>
           </div>
 
           {step === "input" && (
             <>
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center shrink-0">
-                  <span className="text-white font-bold text-xs">M</span>
+              <div style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "16px", padding: "16px", marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "40px", height: "40px", backgroundColor: "#22c55e", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ color: "white", fontWeight: "bold", fontSize: "12px" }}>M</span>
                 </div>
                 <div>
-                  <p className="text-green-800 font-bold text-sm">Pay via M-Pesa</p>
-                  <p className="text-green-600 text-xs">Amount: KES {sermon.price}</p>
+                  <p style={{ color: "#166534", fontWeight: "bold", fontSize: "14px", margin: 0 }}>Lipa Na M-Pesa</p>
+                  <p style={{ color: "#16a34a", fontSize: "12px", margin: "2px 0 0 0" }}>Amount: KES {sermon.price}</p>
                 </div>
               </div>
-              {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">{error}</div>}
-              <form onSubmit={handlePayment} className="flex flex-col gap-4">
-                <div>
-                  <label className="text-[#001F6B] text-sm font-bold mb-2 block">M-Pesa Phone Number</label>
-                  <div className="relative">
-                    <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#0038B8]/50" />
-                    <input value={phone} onChange={e => setPhone(e.target.value)} required
-                      placeholder="0712345678 or 254712345678"
-                      className="w-full border-2 border-[#0038B8]/20 focus:border-[#0038B8] rounded-xl pl-10 pr-4 py-3 text-sm outline-none text-[#001F6B]" />
-                  </div>
-                  <p className="text-[#001F6B]/40 text-xs mt-1">Enter your M-Pesa registered phone number</p>
+              {error && (
+                <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", fontSize: "14px", padding: "12px 16px", borderRadius: "12px", marginBottom: "16px" }}>
+                  {error}
+                </div>
+              )}
+              <form onSubmit={handlePayment}>
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={{ display: "block", color: "#001F6B", fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>M-Pesa Phone Number</label>
+                  <input
+                    type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="e.g. 0712345678"
+                    style={{ width: "100%", border: "2px solid rgba(0,56,184,0.2)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", color: "#001F6B", outline: "none", boxSizing: "border-box" }}
+                    onFocus={e => e.target.style.borderColor = "#0038B8"}
+                    onBlur={e => e.target.style.borderColor = "rgba(0,56,184,0.2)"}
+                  />
                 </div>
                 <button type="submit" disabled={loading}
-                  className="bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
-                  {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Pay KES {sermon.price} via M-Pesa</>}
+                  style={{ width: "100%", backgroundColor: loading ? "#86efac" : "#22c55e", color: "white", fontWeight: "bold", padding: "14px", borderRadius: "12px", border: "none", cursor: loading ? "not-allowed" : "pointer", fontSize: "15px" }}>
+                  {loading ? "Sending prompt..." : `Pay KES ${sermon.price} via M-Pesa`}
                 </button>
               </form>
-              <p className="text-[#001F6B]/40 text-xs text-center mt-4">You will receive an M-Pesa prompt. Enter your PIN to complete.</p>
+              <p style={{ color: "rgba(0,31,107,0.4)", fontSize: "12px", textAlign: "center", marginTop: "16px" }}>
+                You will receive an M-Pesa STK push. Enter your PIN to complete.
+              </p>
             </>
           )}
 
           {step === "waiting" && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 border-4 border-green-200 border-t-green-500 rounded-full animate-spin mx-auto mb-4" />
-              <h4 className="text-[#001F6B] font-bold text-lg mb-2">Waiting for Payment</h4>
-              <p className="text-[#001F6B]/60 text-sm mb-2">Check your phone for the M-Pesa prompt</p>
-              <p className="text-[#001F6B]/40 text-xs">Enter your M-Pesa PIN to complete payment</p>
-              <div className="mt-6 bg-green-50 rounded-xl p-4">
-                <p className="text-green-700 text-sm font-semibold">Amount: KES {sermon.price}</p>
-                <p className="text-green-600 text-xs mt-1">Sabbathtarian Church of Elohim</p>
-              </div>
+            <div style={{ textAlign: "center", padding: "32px 0" }}>
+              <div style={{ width: "64px", height: "64px", border: "4px solid #bbf7d0", borderTop: "4px solid #22c55e", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px" }} />
+              <h4 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "18px", marginBottom: "8px" }}>Check Your Phone!</h4>
+              <p style={{ color: "rgba(0,31,107,0.6)", fontSize: "14px" }}>Enter your M-Pesa PIN to pay KES {sermon.price}</p>
             </div>
           )}
 
           {step === "success" && (
-            <div className="text-center py-8">
-              <CheckCircle size={64} className="text-green-500 mx-auto mb-4" />
-              <h4 className="text-[#001F6B] font-bold text-xl mb-2">Payment Successful!</h4>
-              <p className="text-[#001F6B]/60 text-sm mb-4">You now have access to this sermon.</p>
-              {receipt && (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-                  <p className="text-green-800 text-xs font-bold uppercase tracking-wider mb-1">M-Pesa Receipt</p>
-                  <p className="text-green-700 font-bold text-lg">{receipt}</p>
-                </div>
-              )}
-              {sermon.videoLink ? (
-                <a href={sermon.videoLink} target="_blank" rel="noreferrer"
-                  className="bg-[#0038B8] text-white font-bold px-6 py-3 rounded-full hover:bg-[#001F6B] transition-colors flex items-center gap-2 justify-center">
-                  Access Sermon <ExternalLink size={16} />
-                </a>
-              ) : sermon.fileUrl ? (
-                <a href={`${SERVER_URL}${sermon.fileUrl}`} target="_blank" rel="noreferrer"
-                  className="bg-[#0038B8] text-white font-bold px-6 py-3 rounded-full hover:bg-[#001F6B] transition-colors flex items-center gap-2 justify-center">
-                  Download Sermon <ExternalLink size={16} />
-                </a>
-              ) : (
-                <button onClick={onClose} className="bg-[#0038B8] text-white font-bold px-6 py-3 rounded-full hover:bg-[#001F6B] transition-colors">Close</button>
-              )}
+            <div style={{ textAlign: "center", padding: "32px 0" }}>
+              <div style={{ fontSize: "64px", marginBottom: "16px" }}>✅</div>
+              <h4 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "20px", marginBottom: "8px" }}>Payment Successful!</h4>
+              <p style={{ color: "rgba(0,31,107,0.6)", fontSize: "14px", marginBottom: "8px" }}>You now have full access to this sermon.</p>
+              {receipt && <p style={{ color: "#15803d", fontWeight: "bold", fontSize: "16px", marginBottom: "16px" }}>Receipt: {receipt}</p>}
+              <button onClick={() => { onPaymentSuccess(); onClose(); }}
+                style={{ backgroundColor: "#0038B8", color: "white", fontWeight: "bold", padding: "12px 24px", borderRadius: "50px", border: "none", cursor: "pointer" }}>
+                Access Sermon →
+              </button>
             </div>
           )}
 
           {step === "failed" && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <X size={32} className="text-red-500" />
-              </div>
-              <h4 className="text-[#001F6B] font-bold text-xl mb-2">Payment Failed</h4>
-              <p className="text-[#001F6B]/60 text-sm mb-6">The payment was not completed. Please try again.</p>
-              <div className="flex gap-3 justify-center">
-                <button onClick={() => { setStep("input"); setError(""); }}
-                  className="bg-[#0038B8] text-white font-bold px-6 py-3 rounded-full hover:bg-[#001F6B] transition-colors">Try Again</button>
+            <div style={{ textAlign: "center", padding: "32px 0" }}>
+              <div style={{ fontSize: "64px", marginBottom: "16px" }}>❌</div>
+              <h4 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "20px", marginBottom: "8px" }}>Payment Failed</h4>
+              <p style={{ color: "rgba(0,31,107,0.6)", fontSize: "14px", marginBottom: "24px" }}>The payment was not completed. Please try again.</p>
+              <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+                <button onClick={() => { setStep("input"); setError(""); setPhone(""); }}
+                  style={{ backgroundColor: "#0038B8", color: "white", fontWeight: "bold", padding: "12px 24px", borderRadius: "50px", border: "none", cursor: "pointer" }}>Try Again</button>
                 <button onClick={onClose}
-                  className="border-2 border-[#0038B8]/20 text-[#001F6B] font-bold px-6 py-3 rounded-full hover:border-[#0038B8] transition-colors">Cancel</button>
+                  style={{ backgroundColor: "white", color: "#001F6B", fontWeight: "bold", padding: "12px 24px", borderRadius: "50px", border: "2px solid rgba(0,31,107,0.2)", cursor: "pointer" }}>Cancel</button>
               </div>
             </div>
           )}
         </div>
-      </motion.div>
-    </motion.div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    </div>
   );
 }
 
 export default function SermonCard({ sermon }) {
   const [showPayment, setShowPayment] = useState(false);
+  const [showPlayer, setShowPlayer] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
   const Icon = icons[sermon.type] || FileText;
+
+  const hasMedia = sermon.fileUrl || sermon.videoLink;
+
+  const handlePlay = () => {
+    if (!hasMedia) return;
+    if (sermon.isPremium && !unlocked) {
+      setShowPayment(true);
+    } else if (sermon.videoLink && !sermon.fileUrl) {
+      window.open(sermon.videoLink, "_blank");
+    } else {
+      setShowPlayer(true);
+    }
+  };
 
   return (
     <>
-      <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} whileHover={{ y: -5 }}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} whileHover={{ y: -5 }}
         className="bg-white rounded-2xl shadow-md p-6 border border-[#0038B8]/10 flex flex-col gap-4 hover:shadow-lg transition-all duration-300">
         <div className="flex items-start justify-between">
           <div className="w-12 h-12 bg-[#0038B8]/10 rounded-xl flex items-center justify-center">
             <Icon size={22} className="text-[#0038B8]" />
           </div>
-          {sermon.isPremium && (
-            <span className="flex items-center gap-1 bg-[#0038B8]/10 text-[#0038B8] text-xs font-bold px-2 py-1 rounded-full">
-              <Lock size={10} /> Premium
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {sermon.isPremium && !unlocked && (
+              <span className="flex items-center gap-1 bg-[#0038B8]/10 text-[#0038B8] text-xs font-bold px-2 py-1 rounded-full">
+                <Lock size={10} /> Premium
+              </span>
+            )}
+            {unlocked && (
+              <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">✓ Unlocked</span>
+            )}
+          </div>
         </div>
+
         <div>
           <h3 className="text-[#001F6B] font-bold text-lg mb-1">{sermon.title}</h3>
           <p className="text-[#001F6B]/60 text-sm mb-2 line-clamp-2">{sermon.description}</p>
           <p className="text-[#001F6B]/40 text-xs">By {sermon.speaker} — {format(new Date(sermon.date), "MMM d, yyyy")}</p>
         </div>
-        {sermon.isPremium ? (
+
+        {sermon.isPremium && !unlocked ? (
           <button onClick={() => setShowPayment(true)}
             className="mt-auto bg-green-500 hover:bg-green-600 text-white font-bold text-sm py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
             <Lock size={14} /> Unlock via M-Pesa — KES {sermon.price}
           </button>
-        ) : sermon.videoLink ? (
-          <a href={sermon.videoLink} target="_blank" rel="noreferrer"
-            className="mt-auto flex items-center gap-2 text-[#0038B8] font-semibold text-sm hover:text-[#001F6B] transition-colors">
-            Watch / Listen <ExternalLink size={14} />
-          </a>
-        ) : sermon.fileUrl ? (
-          <a href={`${SERVER_URL}${sermon.fileUrl}`} target="_blank" rel="noreferrer"
-            className="mt-auto flex items-center gap-2 text-[#0038B8] font-semibold text-sm hover:text-[#001F6B] transition-colors">
-            Open File <ExternalLink size={14} />
-          </a>
-        ) : null}
+        ) : hasMedia ? (
+          <button onClick={handlePlay}
+            className="mt-auto bg-[#0038B8] hover:bg-[#001F6B] text-white font-bold text-sm py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
+            <Play size={14} />
+            {sermon.type === "video" && "Watch Sermon"}
+            {sermon.type === "audio" && "Listen to Sermon"}
+            {sermon.type === "pdf" && "Read / Download PDF"}
+          </button>
+        ) : (
+          <div className="mt-auto text-center py-2 text-[#001F6B]/30 text-xs italic">No media uploaded yet</div>
+        )}
       </motion.div>
 
       <AnimatePresence>
-        {showPayment && <MpesaModal sermon={sermon} onClose={() => setShowPayment(false)} />}
+        {showPlayer && <MediaPlayer sermon={sermon} onClose={() => setShowPlayer(false)} />}
+        {showPayment && (
+          <MpesaModal
+            sermon={sermon}
+            onClose={() => setShowPayment(false)}
+            onPaymentSuccess={() => { setUnlocked(true); setShowPlayer(true); }}
+          />
+        )}
       </AnimatePresence>
     </>
   );

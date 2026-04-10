@@ -1,4 +1,4 @@
-const prisma = require("../lib/prisma");
+﻿const prisma = require("../utils/prisma");
 
 exports.getSermons = async (req, res) => {
   try {
@@ -16,22 +16,39 @@ exports.getAllSermons = async (req, res) => {
 
 exports.createSermon = async (req, res) => {
   try {
-    const fileUrl = req.file ? `/uploads/${req.file.filename}` : "";
-    const { title, description, speaker, date, type, videoLink, isPremium, price, isPublished } = req.body;
-    const sermon = await prisma.sermon.create({ data: { title, description, speaker, date: new Date(date), type, fileUrl, videoLink: videoLink || "", isPremium: isPremium === "true" || isPremium === true, price: parseFloat(price) || 0, isPublished: isPublished !== undefined ? Boolean(isPublished) : true, createdBy: req.user.id } });
+    const { title, description, speaker, date, type, videoLink, isPremium, price } = req.body;
+    const fileUrl = req.file ? req.file.path : null;
+    const sermon = await prisma.sermon.create({
+      data: {
+        title,
+        description,
+        speaker,
+        date: new Date(date),
+        type,
+        videoLink: videoLink || null,
+        fileUrl: fileUrl || null,
+        isPremium: isPremium === "true" || isPremium === true,
+        price: parseFloat(price) || 0,
+        createdBy: req.user.id,
+      }
+    });
     res.status(201).json({ success: true, data: sermon });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
 exports.updateSermon = async (req, res) => {
   try {
-    const data = { ...req.body };
-    if (data.date) data.date = new Date(data.date);
-    if (data.isPremium !== undefined) data.isPremium = data.isPremium === "true" || data.isPremium === true;
-    if (data.price !== undefined) data.price = parseFloat(data.price) || 0;
-    if (req.file) data.fileUrl = `/uploads/${req.file.filename}`;
-    delete data.createdBy;
-    const sermon = await prisma.sermon.update({ where: { id: req.params.id }, data });
+    const { title, description, speaker, date, type, videoLink, isPremium, price, isPublished } = req.body;
+    const updateData = {
+      title, description, speaker, type,
+      date: date ? new Date(date) : undefined,
+      videoLink: videoLink || null,
+      isPremium: isPremium === "true" || isPremium === true,
+      price: parseFloat(price) || 0,
+      isPublished: isPublished === "true" || isPublished === true,
+    };
+    if (req.file) updateData.fileUrl = req.file.path;
+    const sermon = await prisma.sermon.update({ where: { id: req.params.id }, data: updateData });
     res.json({ success: true, data: sermon });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
