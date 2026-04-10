@@ -1,53 +1,135 @@
 ﻿import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Headphones, Video, Lock, Play } from "lucide-react";
+import { FileText, Headphones, Video, Lock, Play, X } from "lucide-react";
 import { format } from "date-fns";
 import api from "../../utils/api";
 
 const icons = { pdf: FileText, audio: Headphones, video: Video };
 
+// Convert Cloudinary URL to proper streaming format
+function getCloudinaryStreamUrl(url) {
+  if (!url) return url;
+  // Cloudinary video URLs: convert to streaming-friendly format
+  // https://res.cloudinary.com/cloud/video/upload/v123/folder/file.mp4
+  // -> https://res.cloudinary.com/cloud/video/upload/sp_auto/folder/file.m3u8
+  // But simplest fix: ensure it uses /video/upload/ and add fl_streaming_attachment
+  if (url.includes("cloudinary.com") && url.includes("/video/upload/")) {
+    // Strip any existing transformation flags and add streaming ones
+    return url.replace("/video/upload/", "/video/upload/q_auto,vc_auto/");
+  }
+  return url;
+}
+
 function MediaPlayer({ sermon, onClose }) {
+  const [videoError, setVideoError] = useState(false);
+
+  const videoUrl = sermon.fileUrl;
+  const isCloudinary = videoUrl && videoUrl.includes("cloudinary.com");
+
   return (
     <div
-      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
+      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.92)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
       onClick={onClose}>
       <div
-        style={{ backgroundColor: "white", borderRadius: "20px", width: "100%", maxWidth: "800px", overflow: "hidden", boxShadow: "0 25px 50px rgba(0,0,0,0.5)" }}
+        style={{ backgroundColor: "#000", borderRadius: "20px", width: "100%", maxWidth: "860px", overflow: "hidden", boxShadow: "0 25px 60px rgba(0,0,0,0.8)" }}
         onClick={e => e.stopPropagation()}>
-        <div style={{ height: "4px", backgroundColor: "#0038B8" }} />
-        <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f0f0f0" }}>
+
+        {/* Header */}
+        <div style={{ backgroundColor: "#0038B8", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h3 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "16px", margin: 0 }}>{sermon.title}</h3>
-            <p style={{ color: "#0038B8", fontSize: "12px", margin: "2px 0 0 0" }}>By {sermon.speaker}</p>
+            <h3 style={{ color: "white", fontWeight: "bold", fontSize: "15px", margin: 0 }}>{sermon.title}</h3>
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "12px", margin: "2px 0 0 0" }}>By {sermon.speaker}</p>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#001F6B", opacity: 0.5, fontSize: "22px" }}>✕</button>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", cursor: "pointer", color: "white", width: "32px", height: "32px", borderRadius: "50%", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
-        <div>
-          {sermon.type === "video" && (
-            <video controls autoPlay style={{ width: "100%", maxHeight: "450px", backgroundColor: "#000" }} src={sermon.fileUrl}>
-              Your browser does not support video playback.
-            </video>
-          )}
-          {sermon.type === "audio" && (
-            <div style={{ padding: "40px 24px", backgroundColor: "#F0F5FF" }}>
-              <div style={{ textAlign: "center", marginBottom: "24px" }}>
-                <div style={{ width: "80px", height: "80px", backgroundColor: "#0038B8", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                  <span style={{ fontSize: "32px" }}>🎵</span>
-                </div>
-                <p style={{ color: "#001F6B", fontWeight: "bold", margin: 0 }}>{sermon.title}</p>
-                <p style={{ color: "#001F6B", opacity: 0.5, fontSize: "14px", margin: "4px 0 0 0" }}>{sermon.speaker}</p>
+
+        {/* Player */}
+        {sermon.type === "video" && (
+          <div style={{ backgroundColor: "#000", position: "relative" }}>
+            {!videoError ? (
+              <video
+                controls
+                autoPlay
+                playsInline
+                crossOrigin="anonymous"
+                style={{ width: "100%", maxHeight: "480px", display: "block", backgroundColor: "#000" }}
+                onError={() => setVideoError(true)}
+              >
+                {/* Try multiple source formats for Cloudinary compatibility */}
+                <source src={videoUrl} type="video/mp4" />
+                <source src={videoUrl.replace(".mp4", ".webm")} type="video/webm" />
+                <source src={videoUrl.replace(".mp4", ".ogv")} type="video/ogg" />
+                Your browser does not support video playback.
+              </video>
+            ) : (
+              /* Fallback: Open in new tab if browser can't play inline */
+              <div style={{ padding: "60px 40px", textAlign: "center", backgroundColor: "#111" }}>
+                <div style={{ fontSize: "48px", marginBottom: "16px" }}>🎬</div>
+                <p style={{ color: "white", fontWeight: "bold", fontSize: "18px", marginBottom: "8px" }}>Video ready to play</p>
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "14px", marginBottom: "24px" }}>
+                  Your browser couldn't play inline. Click below to open the video.
+                </p>
+                
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ backgroundColor: "#0038B8", color: "white", fontWeight: "bold", padding: "12px 28px", borderRadius: "50px", textDecoration: "none", fontSize: "15px" }}
+                >
+                  ▶ Open Video
+                </a>
               </div>
-              <audio controls autoPlay style={{ width: "100%" }} src={sermon.fileUrl}>
-                Your browser does not support audio playback.
-              </audio>
+            )}
+          </div>
+        )}
+
+        {sermon.type === "audio" && (
+          <div style={{ padding: "40px 32px", backgroundColor: "#0a0a1a" }}>
+            <div style={{ textAlign: "center", marginBottom: "28px" }}>
+              <div style={{ width: "90px", height: "90px", backgroundColor: "#0038B8", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: "36px" }}>
+                🎵
+              </div>
+              <p style={{ color: "white", fontWeight: "bold", fontSize: "18px", margin: "0 0 4px" }}>{sermon.title}</p>
+              <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", margin: 0 }}>{sermon.speaker}</p>
             </div>
-          )}
-          {sermon.type === "pdf" && (
-            <div style={{ height: "500px" }}>
-              <iframe src={sermon.fileUrl} style={{ width: "100%", height: "100%", border: "none" }} title={sermon.title} />
-            </div>
-          )}
-        </div>
+            <audio
+              controls
+              autoPlay
+              style={{ width: "100%", accentColor: "#0038B8" }}
+              onError={() => setVideoError(true)}
+            >
+              <source src={sermon.fileUrl} type="audio/mpeg" />
+              <source src={sermon.fileUrl} type="audio/wav" />
+              <source src={sermon.fileUrl} type="audio/ogg" />
+            </audio>
+            {videoError && (
+              <div style={{ textAlign: "center", marginTop: "16px" }}>
+                <a href={sermon.fileUrl} target="_blank" rel="noreferrer"
+                  style={{ color: "#4A7FD4", textDecoration: "underline", fontSize: "14px" }}>
+                  Click here to open audio in new tab
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {sermon.type === "pdf" && (
+          <div style={{ height: "520px", backgroundColor: "#fff" }}>
+            <iframe
+              src={`${sermon.fileUrl}#toolbar=1`}
+              style={{ width: "100%", height: "100%", border: "none" }}
+              title={sermon.title}
+              onError={() => setVideoError(true)}
+            />
+            {videoError && (
+              <div style={{ padding: "40px", textAlign: "center" }}>
+                <a href={sermon.fileUrl} target="_blank" rel="noreferrer"
+                  style={{ backgroundColor: "#0038B8", color: "white", padding: "12px 24px", borderRadius: "50px", textDecoration: "none", fontWeight: "bold" }}>
+                  Open PDF in New Tab
+                </a>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -94,11 +176,9 @@ function MpesaModal({ sermon, onClose, onPaymentSuccess }) {
   };
 
   return (
-    <div
-      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
+    <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
       onClick={onClose}>
-      <div
-        style={{ backgroundColor: "white", borderRadius: "24px", width: "100%", maxWidth: "440px", overflow: "hidden", boxShadow: "0 25px 50px rgba(0,0,0,0.3)" }}
+      <div style={{ backgroundColor: "white", borderRadius: "24px", width: "100%", maxWidth: "440px", overflow: "hidden", boxShadow: "0 25px 50px rgba(0,0,0,0.3)" }}
         onClick={e => e.stopPropagation()}>
         <div style={{ height: "6px", backgroundColor: "#0038B8" }} />
         <div style={{ padding: "32px" }}>
@@ -121,36 +201,25 @@ function MpesaModal({ sermon, onClose, onPaymentSuccess }) {
                   <p style={{ color: "#16a34a", fontSize: "12px", margin: "2px 0 0 0" }}>Amount: KES {sermon.price}</p>
                 </div>
               </div>
-              {error && (
-                <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", fontSize: "14px", padding: "12px 16px", borderRadius: "12px", marginBottom: "16px" }}>
-                  {error}
-                </div>
-              )}
+              {error && <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", fontSize: "14px", padding: "12px 16px", borderRadius: "12px", marginBottom: "16px" }}>{error}</div>}
               <form onSubmit={handlePayment}>
                 <div style={{ marginBottom: "16px" }}>
                   <label style={{ display: "block", color: "#001F6B", fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>M-Pesa Phone Number</label>
-                  <input
-                    type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="e.g. 0712345678"
-                    style={{ width: "100%", border: "2px solid rgba(0,56,184,0.2)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", color: "#001F6B", outline: "none", boxSizing: "border-box" }}
-                    onFocus={e => e.target.style.borderColor = "#0038B8"}
-                    onBlur={e => e.target.style.borderColor = "rgba(0,56,184,0.2)"}
-                  />
+                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="e.g. 0712345678"
+                    style={{ width: "100%", border: "2px solid rgba(0,56,184,0.2)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", color: "#001F6B", outline: "none", boxSizing: "border-box" }} />
                 </div>
                 <button type="submit" disabled={loading}
                   style={{ width: "100%", backgroundColor: loading ? "#86efac" : "#22c55e", color: "white", fontWeight: "bold", padding: "14px", borderRadius: "12px", border: "none", cursor: loading ? "not-allowed" : "pointer", fontSize: "15px" }}>
                   {loading ? "Sending prompt..." : `Pay KES ${sermon.price} via M-Pesa`}
                 </button>
               </form>
-              <p style={{ color: "rgba(0,31,107,0.4)", fontSize: "12px", textAlign: "center", marginTop: "16px" }}>
-                You will receive an M-Pesa STK push. Enter your PIN to complete.
-              </p>
             </>
           )}
 
           {step === "waiting" && (
             <div style={{ textAlign: "center", padding: "32px 0" }}>
               <div style={{ width: "64px", height: "64px", border: "4px solid #bbf7d0", borderTop: "4px solid #22c55e", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px" }} />
-              <h4 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "18px", marginBottom: "8px" }}>Check Your Phone!</h4>
+              <h4 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "18px" }}>Check Your Phone!</h4>
               <p style={{ color: "rgba(0,31,107,0.6)", fontSize: "14px" }}>Enter your M-Pesa PIN to pay KES {sermon.price}</p>
             </div>
           )}
@@ -159,8 +228,7 @@ function MpesaModal({ sermon, onClose, onPaymentSuccess }) {
             <div style={{ textAlign: "center", padding: "32px 0" }}>
               <div style={{ fontSize: "64px", marginBottom: "16px" }}>✅</div>
               <h4 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "20px", marginBottom: "8px" }}>Payment Successful!</h4>
-              <p style={{ color: "rgba(0,31,107,0.6)", fontSize: "14px", marginBottom: "8px" }}>You now have full access to this sermon.</p>
-              {receipt && <p style={{ color: "#15803d", fontWeight: "bold", fontSize: "16px", marginBottom: "16px" }}>Receipt: {receipt}</p>}
+              {receipt && <p style={{ color: "#15803d", fontWeight: "bold", marginBottom: "16px" }}>Receipt: {receipt}</p>}
               <button onClick={() => { onPaymentSuccess(); onClose(); }}
                 style={{ backgroundColor: "#0038B8", color: "white", fontWeight: "bold", padding: "12px 24px", borderRadius: "50px", border: "none", cursor: "pointer" }}>
                 Access Sermon →
@@ -171,9 +239,8 @@ function MpesaModal({ sermon, onClose, onPaymentSuccess }) {
           {step === "failed" && (
             <div style={{ textAlign: "center", padding: "32px 0" }}>
               <div style={{ fontSize: "64px", marginBottom: "16px" }}>❌</div>
-              <h4 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "20px", marginBottom: "8px" }}>Payment Failed</h4>
-              <p style={{ color: "rgba(0,31,107,0.6)", fontSize: "14px", marginBottom: "24px" }}>The payment was not completed. Please try again.</p>
-              <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <h4 style={{ color: "#001F6B", fontWeight: "bold", fontSize: "20px" }}>Payment Failed</h4>
+              <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginTop: "16px" }}>
                 <button onClick={() => { setStep("input"); setError(""); setPhone(""); }}
                   style={{ backgroundColor: "#0038B8", color: "white", fontWeight: "bold", padding: "12px 24px", borderRadius: "50px", border: "none", cursor: "pointer" }}>Try Again</button>
                 <button onClick={onClose}
@@ -222,9 +289,7 @@ export default function SermonCard({ sermon }) {
                 <Lock size={10} /> Premium
               </span>
             )}
-            {unlocked && (
-              <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">✓ Unlocked</span>
-            )}
+            {unlocked && <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">✓ Unlocked</span>}
           </div>
         </div>
 
