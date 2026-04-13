@@ -1,30 +1,13 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Headphones, Video, Lock, Play, X } from "lucide-react";
+import { FileText, Headphones, Video, Lock, Play } from "lucide-react";
 import { format } from "date-fns";
 import api from "../../utils/api";
 
 const icons = { pdf: FileText, audio: Headphones, video: Video };
 
-// Convert Cloudinary URL to proper streaming format
-function getCloudinaryStreamUrl(url) {
-  if (!url) return url;
-  // Cloudinary video URLs: convert to streaming-friendly format
-  // https://res.cloudinary.com/cloud/video/upload/v123/folder/file.mp4
-  // -> https://res.cloudinary.com/cloud/video/upload/sp_auto/folder/file.m3u8
-  // But simplest fix: ensure it uses /video/upload/ and add fl_streaming_attachment
-  if (url.includes("cloudinary.com") && url.includes("/video/upload/")) {
-    // Strip any existing transformation flags and add streaming ones
-    return url.replace("/video/upload/", "/video/upload/q_auto,vc_auto/");
-  }
-  return url;
-}
-
 function MediaPlayer({ sermon, onClose }) {
   const [videoError, setVideoError] = useState(false);
-
-  const videoUrl = sermon.fileUrl;
-  const isCloudinary = videoUrl && videoUrl.includes("cloudinary.com");
 
   return (
     <div
@@ -34,48 +17,34 @@ function MediaPlayer({ sermon, onClose }) {
         style={{ backgroundColor: "#000", borderRadius: "20px", width: "100%", maxWidth: "860px", overflow: "hidden", boxShadow: "0 25px 60px rgba(0,0,0,0.8)" }}
         onClick={e => e.stopPropagation()}>
 
-        {/* Header */}
         <div style={{ backgroundColor: "#0038B8", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h3 style={{ color: "white", fontWeight: "bold", fontSize: "15px", margin: 0 }}>{sermon.title}</h3>
             <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "12px", margin: "2px 0 0 0" }}>By {sermon.speaker}</p>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", cursor: "pointer", color: "white", width: "32px", height: "32px", borderRadius: "50%", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", cursor: "pointer", color: "white", width: "32px", height: "32px", borderRadius: "50%", fontSize: "16px" }}>x</button>
         </div>
 
-        {/* Player */}
         {sermon.type === "video" && (
-          <div style={{ backgroundColor: "#000", position: "relative" }}>
+          <div style={{ backgroundColor: "#000" }}>
             {!videoError ? (
               <video
                 controls
                 autoPlay
                 playsInline
                 crossOrigin="anonymous"
-                style={{ width: "100%", maxHeight: "480px", display: "block", backgroundColor: "#000" }}
+                style={{ width: "100%", maxHeight: "480px", display: "block" }}
                 onError={() => setVideoError(true)}
-              >
-                {/* Try multiple source formats for Cloudinary compatibility */}
-                <source src={videoUrl} type="video/mp4" />
-                <source src={videoUrl.replace(".mp4", ".webm")} type="video/webm" />
-                <source src={videoUrl.replace(".mp4", ".ogv")} type="video/ogg" />
-                Your browser does not support video playback.
-              </video>
+                src={sermon.fileUrl}
+              />
             ) : (
-              /* Fallback: Open in new tab if browser can't play inline */
               <div style={{ padding: "60px 40px", textAlign: "center", backgroundColor: "#111" }}>
                 <div style={{ fontSize: "48px", marginBottom: "16px" }}>🎬</div>
                 <p style={{ color: "white", fontWeight: "bold", fontSize: "18px", marginBottom: "8px" }}>Video ready to play</p>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "14px", marginBottom: "24px" }}>
-                  Your browser couldn't play inline. Click below to open the video.
-                </p>
-                
-                  href={videoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ backgroundColor: "#0038B8", color: "white", fontWeight: "bold", padding: "12px 28px", borderRadius: "50px", textDecoration: "none", fontSize: "15px" }}
-                >
-                  ▶ Open Video
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "14px", marginBottom: "24px" }}>Click below to open the video directly.</p>
+                <a href={sermon.fileUrl} target="_blank" rel="noreferrer"
+                  style={{ backgroundColor: "#0038B8", color: "white", fontWeight: "bold", padding: "12px 28px", borderRadius: "50px", textDecoration: "none" }}>
+                  Open Video
                 </a>
               </div>
             )}
@@ -91,16 +60,7 @@ function MediaPlayer({ sermon, onClose }) {
               <p style={{ color: "white", fontWeight: "bold", fontSize: "18px", margin: "0 0 4px" }}>{sermon.title}</p>
               <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", margin: 0 }}>{sermon.speaker}</p>
             </div>
-            <audio
-              controls
-              autoPlay
-              style={{ width: "100%", accentColor: "#0038B8" }}
-              onError={() => setVideoError(true)}
-            >
-              <source src={sermon.fileUrl} type="audio/mpeg" />
-              <source src={sermon.fileUrl} type="audio/wav" />
-              <source src={sermon.fileUrl} type="audio/ogg" />
-            </audio>
+            <audio controls autoPlay style={{ width: "100%" }} src={sermon.fileUrl} onError={() => setVideoError(true)} />
             {videoError && (
               <div style={{ textAlign: "center", marginTop: "16px" }}>
                 <a href={sermon.fileUrl} target="_blank" rel="noreferrer"
@@ -114,13 +74,14 @@ function MediaPlayer({ sermon, onClose }) {
 
         {sermon.type === "pdf" && (
           <div style={{ height: "520px", backgroundColor: "#fff" }}>
-            <iframe
-              src={`${sermon.fileUrl}#toolbar=1`}
-              style={{ width: "100%", height: "100%", border: "none" }}
-              title={sermon.title}
-              onError={() => setVideoError(true)}
-            />
-            {videoError && (
+            {!videoError ? (
+              <iframe
+                src={sermon.fileUrl}
+                style={{ width: "100%", height: "100%", border: "none" }}
+                title={sermon.title}
+                onError={() => setVideoError(true)}
+              />
+            ) : (
               <div style={{ padding: "40px", textAlign: "center" }}>
                 <a href={sermon.fileUrl} target="_blank" rel="noreferrer"
                   style={{ backgroundColor: "#0038B8", color: "white", padding: "12px 24px", borderRadius: "50px", textDecoration: "none", fontWeight: "bold" }}>
@@ -187,11 +148,11 @@ function MpesaModal({ sermon, onClose, onPaymentSuccess }) {
               <h3 style={{ color: "#001F6B", fontSize: "20px", fontWeight: "bold", margin: 0 }}>Unlock Premium Sermon</h3>
               <p style={{ color: "#0038B8", fontSize: "14px", fontWeight: "600", margin: "4px 0 0 0" }}>{sermon.title}</p>
             </div>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#001F6B", opacity: 0.4, fontSize: "20px" }}>✕</button>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#001F6B", opacity: 0.4, fontSize: "20px" }}>x</button>
           </div>
 
           {step === "input" && (
-            <>
+            <div>
               <div style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "16px", padding: "16px", marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ width: "40px", height: "40px", backgroundColor: "#22c55e", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <span style={{ color: "white", fontWeight: "bold", fontSize: "12px" }}>M</span>
@@ -201,19 +162,29 @@ function MpesaModal({ sermon, onClose, onPaymentSuccess }) {
                   <p style={{ color: "#16a34a", fontSize: "12px", margin: "2px 0 0 0" }}>Amount: KES {sermon.price}</p>
                 </div>
               </div>
-              {error && <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", fontSize: "14px", padding: "12px 16px", borderRadius: "12px", marginBottom: "16px" }}>{error}</div>}
+              {error && (
+                <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", fontSize: "14px", padding: "12px 16px", borderRadius: "12px", marginBottom: "16px" }}>
+                  {error}
+                </div>
+              )}
               <form onSubmit={handlePayment}>
                 <div style={{ marginBottom: "16px" }}>
                   <label style={{ display: "block", color: "#001F6B", fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>M-Pesa Phone Number</label>
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="e.g. 0712345678"
-                    style={{ width: "100%", border: "2px solid rgba(0,56,184,0.2)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", color: "#001F6B", outline: "none", boxSizing: "border-box" }} />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    required
+                    placeholder="e.g. 0712345678"
+                    style={{ width: "100%", border: "2px solid rgba(0,56,184,0.2)", borderRadius: "12px", padding: "12px 16px", fontSize: "14px", color: "#001F6B", outline: "none", boxSizing: "border-box" }}
+                  />
                 </div>
                 <button type="submit" disabled={loading}
                   style={{ width: "100%", backgroundColor: loading ? "#86efac" : "#22c55e", color: "white", fontWeight: "bold", padding: "14px", borderRadius: "12px", border: "none", cursor: loading ? "not-allowed" : "pointer", fontSize: "15px" }}>
                   {loading ? "Sending prompt..." : `Pay KES ${sermon.price} via M-Pesa`}
                 </button>
               </form>
-            </>
+            </div>
           )}
 
           {step === "waiting" && (
@@ -231,7 +202,7 @@ function MpesaModal({ sermon, onClose, onPaymentSuccess }) {
               {receipt && <p style={{ color: "#15803d", fontWeight: "bold", marginBottom: "16px" }}>Receipt: {receipt}</p>}
               <button onClick={() => { onPaymentSuccess(); onClose(); }}
                 style={{ backgroundColor: "#0038B8", color: "white", fontWeight: "bold", padding: "12px 24px", borderRadius: "50px", border: "none", cursor: "pointer" }}>
-                Access Sermon →
+                Access Sermon
               </button>
             </div>
           )}
@@ -275,7 +246,7 @@ export default function SermonCard({ sermon }) {
   };
 
   return (
-    <>
+    <div>
       <motion.div
         initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} whileHover={{ y: -5 }}
         className="bg-white rounded-2xl shadow-md p-6 border border-[#0038B8]/10 flex flex-col gap-4 hover:shadow-lg transition-all duration-300">
@@ -289,20 +260,22 @@ export default function SermonCard({ sermon }) {
                 <Lock size={10} /> Premium
               </span>
             )}
-            {unlocked && <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">✓ Unlocked</span>}
+            {unlocked && (
+              <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">Unlocked</span>
+            )}
           </div>
         </div>
 
         <div>
           <h3 className="text-[#001F6B] font-bold text-lg mb-1">{sermon.title}</h3>
           <p className="text-[#001F6B]/60 text-sm mb-2 line-clamp-2">{sermon.description}</p>
-          <p className="text-[#001F6B]/40 text-xs">By {sermon.speaker} — {format(new Date(sermon.date), "MMM d, yyyy")}</p>
+          <p className="text-[#001F6B]/40 text-xs">By {sermon.speaker} - {format(new Date(sermon.date), "MMM d, yyyy")}</p>
         </div>
 
         {sermon.isPremium && !unlocked ? (
           <button onClick={() => setShowPayment(true)}
             className="mt-auto bg-green-500 hover:bg-green-600 text-white font-bold text-sm py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
-            <Lock size={14} /> Unlock via M-Pesa — KES {sermon.price}
+            <Lock size={14} /> Unlock via M-Pesa - KES {sermon.price}
           </button>
         ) : hasMedia ? (
           <button onClick={handlePlay}
@@ -327,6 +300,6 @@ export default function SermonCard({ sermon }) {
           />
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }
